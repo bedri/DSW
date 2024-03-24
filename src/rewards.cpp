@@ -31,10 +31,22 @@ bool CRewards::Init(bool fReindex)
 
     try
     {
+        const std::string dirname = (GetDataDir() / "chainstate").string();
         const std::string filename = (GetDataDir() / "chainstate" / "rewards.db").string();
 
+        // Create the chainstate directory if it doesn't exist
+        if (!fs::exists(dirname.c_str())) {
+            // Directory doesn't exist, create it
+            if (fs::create_directory(dirname.c_str())) {
+                oss << "CRewards::" << __func__ << " Created directory: " << dirname << std::endl;
+            } else {
+                oss << "CRewards::" << __func__ << " Failed to create directory: " << dirname << std::endl;
+                ok = false;
+            }
+        }
+
         // Delete the database file if it exists when reindexing
-        if(fReindex) 
+        if(ok && fReindex) 
         {
             if (auto file = std::fopen(filename.c_str(), "r")) {
                 std::fclose(file);
@@ -153,6 +165,7 @@ bool CRewards::ConnectBlock(CBlockIndex* pindex, CAmount nSubsidy, CCoinsViewCac
 {
     auto& consensus = Params().GetConsensus();
     const auto nHeight = pindex->nHeight;
+    const auto nEpochHeight = GetDynamicRewardsEpochHeight(nHeight);
     std::ostringstream oss;
     auto ok = true;
 
@@ -259,15 +272,15 @@ bool CRewards::ConnectBlock(CBlockIndex* pindex, CAmount nSubsidy, CCoinsViewCac
             oss << "CRewards::" << __func__ << " Adjustment at height " << nHeight << ": " << FormatMoney(nSubsidy) << " => " << FormatMoney(nNewSubsidy) << std::endl;
         }
 
-        if ( // if the wallet is syncing get the reward value from the first block of the epoch
+        if ( // if the wallet is syncing get the reward value from the blocks of the epoch
             !masternodeSync.IsSynced() &&
-            IsDynamicRewardsEpochHeight(nHeight - 1)  
+            nHeight != nEpochHeight && 
+            mDynamicRewards.find(nEpochHeight) == mDynamicRewards.end()
         ) {
             nNewSubsidy = nSubsidy;
         }
 
         if(ok && nNewSubsidy > 0) { // store it
-            auto nEpochHeight = GetDynamicRewardsEpochHeight(nHeight);
             mDynamicRewards[nEpochHeight] = nNewSubsidy; // on the in-memory map
 
             sqlite3_bind_int(insertStmt, 1, nEpochHeight); // on the file database
