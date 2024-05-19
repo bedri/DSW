@@ -33,6 +33,8 @@
 #include "netbase.h"
 #include "policy/policy.h"
 #include "pow.h"
+#include "reverse_iterate.h"
+#include "rewards.h"
 #include "spork.h"
 #include "sporkdb.h"
 #include "txdb.h"
@@ -50,6 +52,7 @@
 #include <boost/foreach.hpp>
 #include <atomic>
 #include <queue>
+#include <regex>
 
 
 #if defined(NDEBUG)
@@ -1085,6 +1088,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
 bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransaction &tx, bool fLimitFree,
                         bool* pfMissingInputs, bool fOverrideMempoolLimit, bool fRejectAbsurdFee, bool fIgnoreFees)
 {
+    LOCK(cs_main);
     std::vector<COutPoint> coins_to_uncache;
     bool res = AcceptToMemoryPoolWorker(pool, state, tx, fLimitFree, pfMissingInputs, fOverrideMempoolLimit, fRejectAbsurdFee, fIgnoreFees, coins_to_uncache);
     if (!res) {
@@ -1652,7 +1656,7 @@ int GetSpendHeight(const CCoinsViewCache& inputs)
 namespace Consensus {
 bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight)
 {
-    // if we have already a checkpoint newer than this block 
+    // if we have already a checkpoint newer than this block
     // then it is OK
     if (nSpendHeight <= Checkpoints::GetTotalBlocksEstimate())
         return true;
@@ -1893,6 +1897,8 @@ DisconnectResult DisconnectBlock(CBlock& block, CBlockIndex* pindex, CCoinsViewC
     CBlockUndo blockUndo;
     CAmount nValueOut = 0;
     CAmount nValueIn = 0;
+    CAmount nUnspendableValue = 0;
+
     CDiskBlockPos pos = pindex->GetUndoPos();
     if (pos.IsNull()) {
         error("%s: no undo data available", __func__);
@@ -1913,8 +1919,8 @@ DisconnectResult DisconnectBlock(CBlock& block, CBlockIndex* pindex, CCoinsViewC
         const CTransaction& tx = block.vtx[i];
 
         nValueOut += tx.GetValueOut();
+        nUnspendableValue += tx.GetUnspendableValueOut();
         uint256 hash = tx.GetHash();
-
 
         // Check that all outputs are available and match the outputs in the block itself
         // exactly.
@@ -1952,33 +1958,22 @@ DisconnectResult DisconnectBlock(CBlock& block, CBlockIndex* pindex, CCoinsViewC
             nValueIn += view.GetValueIn(tx);
     }
 
-    // track money
-    nMoneySupply -= (nValueOut - nValueIn);
+    // move best block pointer to prevout block
+    view.SetBestBlock(pindex->pprev->GetBlockHash());
 
-    // clean last paid
-    {
-        std::vector<CMasternodePayee> mnpayees;
+    // Clean lastPaid
+    auto amount = CMasternode::GetMasternodePayment(pindex->nHeight);
+    auto paidPayee = block.GetPaidPayee(amount);
+    if(!paidPayee.empty()) {
+        auto pmn = mnodeman.Find(paidPayee);
 
-        {
-            LOCK2(cs_mapMasternodeBlocks, cs_vecPayments);
-
-            if (masternodePayments.mapMasternodeBlocks.count(pindex->nHeight)) {
-                masternodePayments.mapMasternodeBlocks[pindex->nHeight].paidPayee = CScript();
-                mnpayees = masternodePayments.mapMasternodeBlocks[pindex->nHeight].vecPayments;
-            }
-        }
-
-        for(auto mnp : mnpayees) {
-            auto pmn = mnodeman.Find(mnp.scriptPubKey);
-
-            if(pmn) {
-                pmn->lastPaid = UINT64_MAX;
-            }
+        if(pmn) {
+            pmn->lastPaid = INT64_MAX;
         }
     }
 
-    // move best block pointer to prevout block
-    view.SetBestBlock(pindex->pprev->GetBlockHash());
+    // Dynamic rewards management
+    if(!CRewards::DisconnectBlock(pindex)) return DISCONNECT_UNCLEAN;
 
     return fClean ? DISCONNECT_OK : DISCONNECT_UNCLEAN;
 }
@@ -2025,6 +2020,15 @@ static int64_t nTimeTotal = 0;
 bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view, bool fJustCheck, bool fAlreadyChecked)
 {
     AssertLockHeld(cs_main);
+
+    int nHeight = pindex->nHeight;
+
+    static auto& mapCheckpoints = *(Params().Checkpoints().mapCheckpoints);
+    static auto nLastCheckpointHeight = std::max_element(
+        mapCheckpoints.begin(), mapCheckpoints.end(),
+        [](const std::pair<const int, uint256>& a, const std::pair<const int, uint256>& b) { return a.first < b.first; }
+    )->first;
+
     // Check it again in case a previous version let a bad block in
     if (!fAlreadyChecked && !CheckBlock(block, state, !fJustCheck, !fJustCheck)) {
         if (state.CorruptionPossible()) {
@@ -2082,9 +2086,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
     CAmount nValueOut = 0;
     CAmount nValueIn = 0;
+    CAmount nUnspendableValue = 0;
     unsigned int nMaxBlockSigOps = MAX_BLOCK_SIGOPS_CURRENT;
     std::vector<uint256> vSpendsInBlock;
-    uint256 hashBlock = block.GetHash();
 
     std::vector<PrecomputedTransactionData> precomTxData;
     precomTxData.reserve(block.vtx.size()); // Required so that pointers to individual precomTxData don't get invalidated
@@ -2129,6 +2133,21 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
             control.Add(vChecks);
         }
         nValueOut += tx.GetValueOut();
+        nUnspendableValue += tx.GetUnspendableValueOut();
+
+        // ----------- burn address scanning -----------
+        if(nHeight > nLastCheckpointHeight) {
+            for (unsigned int i = 0; i < tx.vout.size(); i++) {
+                CTxDestination source;
+                if (tx.vout[i].scriptPubKey.IsNormalPaymentScript() && ExtractDestination(tx.vout[i].scriptPubKey, source)) {
+                    const std::string addr = EncodeDestination(source);
+                    if (consensus.mBurnAddresses.find(addr) != consensus.mBurnAddresses.end() &&
+                        consensus.mBurnAddresses.at(addr) < nHeight) {
+                        nUnspendableValue += tx.vout[i].nValue;
+                    }
+                }
+            }
+        }
 
         CTxUndo undoDummy;
         if (i > 0) {
@@ -2148,7 +2167,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs]\n", (unsigned)block.vtx.size(), 0.001 * (nTime1 - nTimeStart), 0.001 * (nTime1 - nTimeStart) / block.vtx.size(), nInputs <= 1 ? 0 : 0.001 * (nTime1 - nTimeStart) / (nInputs - 1), nTimeConnect * 0.000001);
 
     //PoW phase redistributed fees to miner. PoS stage destroys fees.
-    CAmount nExpectedMint = CMasternode::GetBlockValue(pindex->pprev->nHeight + 1);
+    CAmount nExpectedMint = CRewards::GetBlockValue(pindex->pprev->nHeight + 1);
     if (block.IsProofOfWork())
         nExpectedMint += nFees;
 
@@ -2195,8 +2214,35 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     // add this block to the view's block chain
     view.SetBestBlock(pindex->GetBlockHash());
 
+    // Recalculate the money supply taking in account the existent burn addresses
+    if(nHeight == nLastCheckpointHeight)
+    {
+        std::unique_ptr<CCoinsViewCursor> pcursor(pcoinsTip->Cursor());
+
+        while (pcursor->Valid()) {
+            boost::this_thread::interruption_point();
+            COutPoint key;
+            Coin coin;
+            if (pcursor->GetKey(key) && pcursor->GetValue(coin)) {
+                // ----------- burn address scanning -----------
+                CTxDestination source;
+                if (ExtractDestination(coin.out.scriptPubKey, source)) {
+                    const std::string addr = EncodeDestination(source);
+                    if (consensus.mBurnAddresses.find(addr) != consensus.mBurnAddresses.end() &&
+                        consensus.mBurnAddresses.at(addr) < nHeight) 
+                    {
+                        nUnspendableValue += coin.out.nValue;
+                        pcursor->Next();
+                        continue;
+                    }
+                }
+            }
+            pcursor->Next();
+        }
+    }
+
     // Update __DSW__ money supply
-    nMoneySupply += (nValueOut - nValueIn);
+    pindex->nMoneySupply = pindex->pprev->nMoneySupply.get() + (nValueOut - nValueIn - nUnspendableValue);
 
     int64_t nTime3 = GetTimeMicros();
     nTimeIndex += nTime3 - nTime2;
@@ -2210,6 +2256,20 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     int64_t nTime4 = GetTimeMicros();
     nTimeCallbacks += nTime4 - nTime3;
     LogPrint(BCLog::BENCH, "    - Callbacks: %.2fms [%.2fs]\n", 0.001 * (nTime4 - nTime3), nTimeCallbacks * 0.000001);
+
+    // Fill lastPaid
+    auto amount = CMasternode::GetMasternodePayment(pindex->nHeight);
+    auto paidPayee = block.GetPaidPayee(amount);
+    if(!paidPayee.empty()) {
+        auto pmn = mnodeman.Find(paidPayee);
+
+        if(pmn) {
+            pmn->lastPaid = pindex->GetBlockTime();
+        }
+    }
+
+    // Dynamic rewards management
+    if(!CRewards::ConnectBlock(pindex, nMint, view)) return false;
 
     return true;
 }
@@ -2402,6 +2462,7 @@ bool static DisconnectTip(CValidationState& state)
     // UpdateTransactionsFromBlock finds descendants of any transactions in this
     // block that were added back and cleans up the mempool state.
     mempool.UpdateTransactionsFromBlock(vHashUpdate);
+
     // Update chainActive and related variables.
     UpdateTip(pindexDelete->pprev);
     // Let wallets know transactions went from 1-confirmed to
@@ -2473,6 +2534,7 @@ bool static ConnectTip(CValidationState& state, CBlockIndex* pindexNew, const CB
 
     // Remove conflicting transactions from the mempool.
     mempool.removeForBlock(pblock->vtx, pindexNew->nHeight, txConflicted, !IsInitialBlockDownload());
+
     // Update chainActive & related variables.
     UpdateTip(pindexNew);
 
@@ -3103,26 +3165,30 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
     if (pindexPrev != NULL) {
         if (pindexPrev->GetBlockHash() == block.hashPrevBlock) {
             nHeight = pindexPrev->nHeight + 1;
-        } else { //out of order
+        } else { // Out of order, blocks arrives in order, so if prev block is not the tip then we are on a fork.
             BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
-            if (mi != mapBlockIndex.end() && (*mi).second)
+            if (mi != mapBlockIndex.end() && (*mi).second) {
                 nHeight = (*mi).second->nHeight + 1;
+            }
         }
 
         // __Decenomy__
-        // It is entierly possible that we don't have enough data and this could fail
+        // It is entirely possible that we don't have enough data and this could fail
         // (i.e. the block could indeed be valid). Store the block for later consideration
         // but issue an initial reject message.
         // The case also exists that the sending peer could not have enough data to see
         // that this block is invalid, so don't issue an outright ban.
-        if (nHeight != 0 && !IsInitialBlockDownload()) {
+        if (nHeight != 0 && 
+            !IsInitialBlockDownload() &&
+            GetAdjustedTime() - block.GetBlockTime() < DEFAULT_BLOCK_PAYEE_VERIFICATION_TIMEOUT)
+        {
             // check masternode payment
             if (!IsBlockPayeeValid(block, nHeight)) {
                 mapRejectedBlocks.insert(std::make_pair(block.GetHash(), GetTime()));
                 return state.DoS(0, false, REJECT_INVALID, "bad-cb-payee", false, "Couldn't find masternode payment");
             }
         } else {
-            LogPrintf("%s: Masternode payment checks skipped on sync\n", __func__);
+            LogPrintf("%s: Masternode payment checks skipped on sync and second layer verification timeout\n", __func__);
         }
     }
 
@@ -3196,6 +3262,25 @@ bool CheckBlockTime(const CBlockHeader& block, CValidationState& state, CBlockIn
     return true;
 }
 
+//! Returns last CBlockIndex* that is a checkpoint
+const CBlockIndex* GetLastCheckpoint() EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+{
+    AssertLockHeld(cs_main);
+
+    if (!Checkpoints::fEnabled)
+        return nullptr;
+
+    const Checkpoints::MapCheckpoints& checkpoints = *Params().Checkpoints().mapCheckpoints;
+
+    for (const auto& i : reverse_iterate(checkpoints)) {
+        const uint256& hash = i.second;
+        CBlockIndex* pindex = LookupBlockIndex(hash);
+        if (pindex)
+            return pindex;
+    }
+    return nullptr;
+}
+
 bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& state, CBlockIndex* const pindexPrev)
 {
     const Consensus::Params& consensus = Params().GetConsensus();
@@ -3212,7 +3297,7 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
     //If this is a reorg, check that it is not too deep
     int nMaxReorgDepth = GetArg("-maxreorg", DEFAULT_MAX_REORG_DEPTH);
     if (chainHeight - nHeight >= nMaxReorgDepth)
-        return state.DoS(1, error("%s: forked chain older than max reorganization depth (height %d)", __func__, chainHeight - nHeight));
+        return state.DoS(100, error("%s: forked chain older than max reorganization depth (height %d)", __func__, chainHeight - nHeight));
 
     // Check blocktime (past limit, future limit and mask)
     if (!CheckBlockTime(block, state, pindexPrev))
@@ -3313,7 +3398,7 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, CBlockIn
     // Size limits
     if (nHeight != 0 && !IsInitialBlockDownload()) {
         unsigned int nMaxBlockSize = std::max(
-            (unsigned int)1000, 
+            (unsigned int)1000,
             std::min(
                 (unsigned int)sporkManager.GetSporkValue(SPORK_105_MAX_BLOCK_SIZE),
                 MAX_BLOCK_SIZE_CURRENT
@@ -3342,7 +3427,7 @@ bool AcceptBlockHeader(const CBlock& block, CValidationState& state, CBlockIndex
         pindex = miSelf->second;
         if (ppindex)
             *ppindex = pindex;
-        if (pindex->nStatus & BLOCK_FAILED_MASK)
+        if (pindex->nStatus & BLOCK_FAILED_MASK && mapRejectedBlocks.find(hash) == mapRejectedBlocks.end())
             return state.Invalid(error("%s : block is marked invalid", __func__), 0, "duplicate");
         return true;
     }
@@ -3370,7 +3455,13 @@ bool AcceptBlockHeader(const CBlock& block, CValidationState& state, CBlockIndex
                 }
             }
 
-            return state.DoS(100, error("%s : prev block height=%d hash=%s is invalid, unable to add block %s", __func__, pindexPrev->nHeight, block.hashPrevBlock.GetHex(), block.GetHash().GetHex()),
+            int level = 100;
+
+            if(mapRejectedBlocks.find(block.hashPrevBlock) != mapRejectedBlocks.end()) {
+                level = 0; // let it be reconsidered
+            }
+
+            return state.DoS(level, error("%s : prev block height=%d hash=%s is invalid, unable to add block %s", __func__, pindexPrev->nHeight, block.hashPrevBlock.GetHex(), block.GetHash().GetHex()),
                              REJECT_INVALID, "bad-prevblk");
         }
 
@@ -3414,7 +3505,14 @@ bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockIndex** ppi
                     return true;
                 }
             }
-            return state.DoS(100, error("%s : prev block %s is invalid, unable to add block %s", __func__, block.hashPrevBlock.GetHex(), block.GetHash().GetHex()),
+
+            int level = 100;
+
+            if(mapRejectedBlocks.find(block.hashPrevBlock) != mapRejectedBlocks.end()) {
+                level = 0; // let it be reconsidered
+            }
+
+            return state.DoS(level, error("%s : prev block %s is invalid, unable to add block %s", __func__, block.hashPrevBlock.GetHex(), block.GetHash().GetHex()),
                              REJECT_INVALID, "bad-prevblk");
         }
     }
@@ -3448,7 +3546,6 @@ bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockIndex** ppi
     }
 
     int nHeight = pindex->nHeight;
-    int splitHeight = -1;
 
     if (isPoS) {
         LOCK(cs_main);
@@ -3464,7 +3561,7 @@ bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockIndex** ppi
         std::vector<CTxIn> pivInputs;
 
         for (const CTxIn& stakeIn : stakeTxIn.vin) {
-            pivInputs.push_back(stakeIn);            
+            pivInputs.push_back(stakeIn);
         }
         const bool hasPIVInputs = !pivInputs.empty();
 
@@ -3529,9 +3626,6 @@ bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockIndex** ppi
                     return error("%s: previous block %s not on disk", __func__, prev->GetBlockHash().GetHex());
 
             }
-
-            // Split height
-            splitHeight = prev->nHeight;
         }
 
         // If the stake is not a zPoS then let's check if the inputs were spent on the main chain
@@ -3681,6 +3775,12 @@ bool ProcessNewBlock(CValidationState& state, CNode* pfrom, const CBlock* pblock
 
     if (!ActivateBestChain(state, pblock, checked, connman))
         return error("%s : ActivateBestChain failed", __func__);
+
+    if (!fLiteMode) {
+        if (masternodeSync.RequestedMasternodeAssets > MASTERNODE_SYNC_LIST) {
+            masternodePayments.ProcessBlock(newHeight + 10);
+        }
+    }
 
     if (pwalletMain) {
         /* disable multisend
@@ -3995,6 +4095,191 @@ bool CVerifyDB::VerifyDB(CCoinsView* coinsview, int nCheckLevel, int nCheckDepth
     }
 
     LogPrintf("No coin database inconsistencies in last %i blocks (%i transactions)\n", chainHeight - pindexState->nHeight, nGoodTransactions);
+
+    ResyncSupply();
+
+    return true;
+}
+
+void ResyncSupply()
+{
+    LOCK(cs_main);
+
+    if (chainActive.Tip() == NULL || chainActive.Tip()->pprev == NULL)
+        return;
+
+    CAmount nMoneySupply = 0;
+    auto& consensus = Params().GetConsensus();
+
+    std::unique_ptr<CCoinsViewCursor> pcursor(pcoinsTip->Cursor());
+
+    while (pcursor->Valid()) {
+        boost::this_thread::interruption_point();
+        COutPoint key;
+        Coin coin;
+        if (pcursor->GetKey(key) && pcursor->GetValue(coin) && !coin.IsSpent()) {
+            // ----------- burn address scanning -----------
+            CTxDestination source;
+            if (ExtractDestination(coin.out.scriptPubKey, source)) {
+                const std::string addr = EncodeDestination(source);
+                if (consensus.mBurnAddresses.find(addr) != consensus.mBurnAddresses.end() &&
+                    consensus.mBurnAddresses.at(addr) < chainActive.Height()) {
+                    pcursor->Next();
+                    continue;
+                }
+            }
+            nMoneySupply += coin.out.nValue;
+        }
+        pcursor->Next();
+    }
+
+    chainActive.Tip()->nMoneySupply = nMoneySupply;
+}
+
+bool RewindBlockIndex(std::string param)
+{
+    LOCK(cs_main);
+
+    int nHeight = chainActive.Height();
+    int targetHeight = nHeight;
+    int blocksToRollBack = 0;
+    if (param.size() == 0) {
+        const CBlockIndex* prevCheckPoint;
+        prevCheckPoint = GetLastCheckpoint();
+        const int checkPointHeight = prevCheckPoint ? prevCheckPoint->nHeight : 0;
+        targetHeight = checkPointHeight;
+    } else {
+        // Match a hex number that is 64 digits long.
+        if (std::regex_match(param, std::regex("^[0-9a-fA-F]{64}$"))) {
+            const uint256 hash(uint256S(param));
+            if (!IsBlockHashInChain(hash)) {
+                throw std::runtime_error("Block not found. Unable to rewind the blockchain to the given block.\n");
+                return false;
+            }
+
+            CBlockIndex* block;
+            block = LookupBlockIndex(hash);
+
+            targetHeight = block->nHeight;
+        } else if (std::regex_match(param, std::regex("^[0-9]+$"))) {
+            blocksToRollBack = stoi(param);
+            targetHeight = nHeight - blocksToRollBack;
+            if (nHeight < blocksToRollBack || blocksToRollBack < 1) {
+                throw std::runtime_error("Invalid value. Unable to rewind the blockchain by the given number of blocks.\n");
+                return false;
+            }
+        } else {
+            throw std::runtime_error("Incorrect parameter format. Enter a block hash as a 64 char hex string or a decimal number.\n");
+            return false;
+        }
+    }
+
+    CValidationState state;
+
+    if (targetHeight > nHeight) {
+        return false;
+    }
+
+    blocksToRollBack = nHeight - targetHeight;
+    double blocksRolledBack = 0;
+    // Iterate to start removing blocks
+    while (nHeight > targetHeight) {
+        blocksRolledBack++;
+        // End loop if shutdown was requested
+        if (ShutdownRequested()) return false;
+
+        if (!DisconnectTip(state)) {
+            FlushStateToDisk(state, FLUSH_STATE_PERIODIC);
+            return error("%s: unable to disconnect block at height %i", __func__, nHeight);
+        }
+
+        if(nHeight % std::max((blocksToRollBack / 100), 1) == 0) {
+            uiInterface.InitMessage(
+                strprintf(
+                    _("Rewinding blocks: %d (%.2f%%) ..."),
+                    blocksRolledBack,
+                    (blocksRolledBack / blocksToRollBack) * 100
+                )
+            );
+            // flush state to disk.
+            if (!FlushStateToDisk(state, FLUSH_STATE_PERIODIC)) {
+                return false;
+            }
+        }
+
+        nHeight = chainActive.Height();
+    }
+
+    // flush state to disk.
+    if (!FlushStateToDisk(state, FLUSH_STATE_PERIODIC)) {
+        return false;
+    }
+
+    // Collect blocks to be removed (blocks in mapBlockIndex must be at least BLOCK_VALID_TREE).
+    // We do this after actual disconnecting, otherwise we'll end up writing the lack of data
+    // to disk before writing the chainstate, resulting in a failure to continue if interrupted.
+    std::vector<const CBlockIndex*> vBlocks;
+    for (BlockMap::iterator it = mapBlockIndex.begin(); it != mapBlockIndex.end(); it++) {
+        CBlockIndex* pindexIter = it->second;
+        if (!chainActive.Contains(pindexIter)) {
+            // Add to the list of blocks to remove
+            vBlocks.emplace_back(pindexIter);
+            if (pindexIter == pindexBestInvalid) {
+                // Reset invalid block marker if it was pointing to this block
+                pindexBestInvalid = nullptr;
+            }
+            // Reduce validity
+            pindexIter->nStatus = std::min<unsigned int>(pindexIter->nStatus & BLOCK_VALID_MASK, BLOCK_VALID_TREE) | (pindexIter->nStatus & ~BLOCK_VALID_MASK);
+            // Remove have-data flags.
+            pindexIter->nStatus &= ~(BLOCK_HAVE_DATA | BLOCK_HAVE_UNDO);
+            // Remove storage location.
+            pindexIter->nFile = 0;
+            pindexIter->nDataPos = 0;
+            pindexIter->nUndoPos = 0;
+            // Remove various other things
+            pindexIter->nTx = 0;
+            pindexIter->nChainTx = 0;
+            pindexIter->nSequenceId = 0;
+            // Update indices
+            setBlockIndexCandidates.erase(pindexIter);
+            auto ret = mapBlocksUnlinked.equal_range(pindexIter->pprev);
+            while (ret.first != ret.second) {
+                if (ret.first->second == pindexIter) {
+                    ret.first = mapBlocksUnlinked.erase(ret.first);
+                } else {
+                    ++ret.first;
+                }
+            }
+        } else if (pindexIter->IsValid(BLOCK_VALID_TRANSACTIONS) && pindexIter->nChainTx) {
+            setBlockIndexCandidates.insert(pindexIter);
+        }
+    }
+
+    // Set pindexBestHeader to the current chain tip
+    // (since we are about to delete the block it is pointing to)
+    pindexBestHeader = chainActive.Tip();
+
+    // Erase block indices on-disk
+    if (!pblocktree->EraseBatchSync(vBlocks)) {
+        return AbortNode(state, "Failed to erase from block index database");
+    }
+
+    // Erase block indices in-memory
+    for (auto pindex : vBlocks) {
+        auto ret = mapBlockIndex.find(*pindex->phashBlock);
+        if (ret != mapBlockIndex.end()) {
+            mapBlockIndex.erase(ret);
+            delete pindex;
+        }
+    }
+
+    CheckBlockIndex();
+
+    if (!FlushStateToDisk(state, FLUSH_STATE_ALWAYS)) {
+        return false;
+    }
+
+    ResyncSupply();
 
     return true;
 }
@@ -4708,9 +4993,9 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
 
         shortFromName.erase(
             std::remove_if(
-                shortFromName.begin(), 
-                shortFromName.end(), 
-                []( char const& c ) -> bool { return !std::isalnum(c); }), 
+                shortFromName.begin(),
+                shortFromName.end(),
+                []( char const& c ) -> bool { return !std::isalnum(c); }),
             shortFromName.end()
         );
 

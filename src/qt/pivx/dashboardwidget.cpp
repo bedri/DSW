@@ -144,7 +144,7 @@ bool hasCharts = false;
 #ifdef USE_QTCHARTS
     hasCharts = true;
     isLoading = false;
-    setChartShow(YEAR);
+    setChartShow(MONTH);
     connect(ui->pushButtonYear, &QPushButton::clicked, [this](){setChartShow(YEAR);});
     connect(ui->pushButtonMonth, &QPushButton::clicked, [this](){setChartShow(MONTH);});
     connect(ui->pushButtonAll, &QPushButton::clicked, [this](){setChartShow(ALL);});
@@ -424,6 +424,18 @@ void DashboardWidget::showHideEmptyChart(bool showEmpty, bool loading, bool forc
     ui->pushButtonAll->setEnabled(invLoading);
     ui->pushButtonYear->setEnabled(invLoading);
     ui->labelEmptyChart->setText(loading ? tr("Loading chart..") : tr("You have no staking rewards"));
+
+    switch(this->chartShow) {
+        case MONTH:
+            ui->pushButtonMonth->setChecked(true);
+            break;
+        case YEAR:
+            ui->pushButtonYear->setChecked(true);
+            break;
+        case ALL:
+            ui->pushButtonAll->setChecked(true);
+            break;
+    }
 }
 
 void DashboardWidget::initChart()
@@ -454,6 +466,8 @@ void DashboardWidget::initChart()
     ui->chartContainer->setLayout(baseScreensContainer);
     ui->chartContainer->setContentsMargins(0,0,0,0);
     setCssProperty(ui->chartContainer, "container-chart");
+
+    setPrivacy(fPrivacyMode);
 }
 
 void DashboardWidget::changeChartColors()
@@ -830,19 +844,12 @@ void DashboardWidget::onChartArrowClicked(bool goLeft)
     }
 
     refreshChart();
-    //Check if data end day is current date and monthfilter is current month
-    bool fEndDayisCurrent = dataenddate  == currentDate.day() && monthFilter == currentDate.month();
 
     if (updateMonth)
         ui->comboBoxMonths->setCurrentIndex(monthFilter - 1);
 
     if (updateYear)
         ui->comboBoxYears->setCurrentText(QString::number(yearFilter));
-
-    // enable/disable the pushButtonChartRight.
-    ui->pushButtonChartRight->setEnabled(!fEndDayisCurrent);
-
-
 }
 
 void DashboardWidget::windowResizeEvent(QResizeEvent* event)
@@ -899,6 +906,21 @@ void DashboardWidget::run(int type)
 void DashboardWidget::onError(QString error, int type)
 {
     inform(tr("Error loading chart: %1").arg(error));
+}
+
+void DashboardWidget::setPrivacy(bool isPrivate) 
+{
+#ifdef USE_QTCHARTS
+    if (axisY) {
+        if(isPrivate) {
+            axisY->hide();
+        } else {
+            axisY->show();
+        }
+    }
+#endif
+
+    ui->listTransactions->update();
 }
 
 void DashboardWidget::processNewTransaction(const QModelIndex& parent, int start, int /*end*/)

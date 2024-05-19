@@ -3502,7 +3502,7 @@ Il y a eu une erreur de sauvegarde de la liste d'adresses vers %1. SVP rééssay
                            __DSW__ utilizes a Proof of Stake (PoS) consensus system algorithm,
                            allowing all owners of __DSW__ to participate in earning block rewards
                            while securing the network with full node wallets, as well as to
-                           run Masternodes to earn additional income regulary.
+                           run Masternodes to earn additional income regularly.
                            &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
                          </source>
         <translation>
@@ -4565,7 +4565,7 @@ Confirmez-vous ?
         <translation>Staking actif</translation>
     </message>
     <message>
-        <source>Staking not active</source>
+        <source>Staking inactive</source>
         <translation>Staking inactif</translation>
     </message>
     <message>

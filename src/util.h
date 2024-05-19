@@ -42,7 +42,11 @@ extern const char * const DEFAULT_DEBUGLOGFILE;
 //__DSW__ only features
 
 extern bool fMasterNode;
+extern bool fStaking;
+extern bool fStakingActive;
+extern bool fStakingStatus;
 extern bool fLiteMode;
+extern bool fPrivacyMode;
 extern int64_t enforceMasternodePaymentsTime;
 extern int keysLoaded;
 extern bool fSucessfullyLoaded;
@@ -73,6 +77,7 @@ int RaiseFileDescriptorLimit(int nMinFD);
 void AllocateFileRange(FILE* file, unsigned int offset, unsigned int length);
 bool RenameOver(fs::path src, fs::path dest);
 bool TryCreateDirectory(const fs::path& p);
+bool IsDirectory(const std::string& path);
 fs::path GetDefaultDataDir();
 const fs::path &GetDataDir(bool fNetSpecific = true);
 void ClearDatadirCache();
@@ -195,5 +200,7 @@ void TraceThread(const char* name, Callable func)
 }
 
 fs::path AbsPathForConfigVal(const fs::path& path, bool net_specific = true);
+
+std::string GetReadableHashRate(uint64_t hashrate);
 
 #endif // BITCOIN_UTIL_H

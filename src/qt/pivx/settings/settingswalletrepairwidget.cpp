@@ -27,12 +27,14 @@ SettingsWalletRepairWidget::SettingsWalletRepairWidget(PIVXGUI* _window, QWidget
     // Labels
     setCssProperty({ui->labelMessageSalvage, ui->labelMessageRescan, ui->labelMessageRecover1,
                     ui->labelMessageRecover2, ui->labelMessageUpgrade, ui->labelMessageRebuild,
-                    ui->labelMessageDelete}, "text-main-settings");
+                    ui->labelMessageDelete, ui->labelMessageRewind, ui->labelMessageWeekRewind,
+                    ui->labelMessageBootstrap}, "text-main-settings");
 
     // Buttons
     setCssProperty({ui->pushButtonSalvage, ui->pushButtonRescan, ui->pushButtonRecover1,
                     ui->pushButtonRecover2, ui->pushButtonUpgrade, ui->pushButtonRebuild,
-                    ui->pushButtonDelete}, "btn-primary");
+                    ui->pushButtonDelete, ui->pushButtonRewind, ui->pushButtonWeekRewind,
+                  ui->pushButtonBootstrap}, "btn-primary");
 
     // Wallet Repair Buttons
     connect(ui->pushButtonSalvage, &QPushButton::clicked, this, &SettingsWalletRepairWidget::walletSalvage);
@@ -42,6 +44,9 @@ SettingsWalletRepairWidget::SettingsWalletRepairWidget(PIVXGUI* _window, QWidget
     connect(ui->pushButtonUpgrade, &QPushButton::clicked, this, &SettingsWalletRepairWidget::walletUpgrade);
     connect(ui->pushButtonRebuild, &QPushButton::clicked, this, &SettingsWalletRepairWidget::walletReindex);
     connect(ui->pushButtonDelete, &QPushButton::clicked, this, &SettingsWalletRepairWidget::walletResync);
+    connect(ui->pushButtonRewind, &QPushButton::clicked, this, &SettingsWalletRepairWidget::walletRewind);
+    connect(ui->pushButtonWeekRewind, &QPushButton::clicked, this, &SettingsWalletRepairWidget::walletWeekRewind);
+    connect(ui->pushButtonBootstrap, &QPushButton::clicked, this, &SettingsWalletRepairWidget::walletBootstrap);
 }
 
 /** Restart wallet with "-salvagewallet" */
@@ -101,6 +106,72 @@ void SettingsWalletRepairWidget::walletResync()
     buildParameterlist(RESYNC);
 }
 
+/** Restart wallet with "-rewindblockindex" */
+void SettingsWalletRepairWidget::walletRewind()
+{
+    QString rewindWarning = tr("This will rewind your blocks to the most recent checkpoint.<br /><br />");
+    rewindWarning +=   tr("Do you want to continue?.<br />");
+    QMessageBox::StandardButton retval = QMessageBox::question(this, tr("Confirm resync Blockchain"),
+        rewindWarning,
+        QMessageBox::Yes | QMessageBox::Cancel,
+        QMessageBox::Cancel);
+
+    if (retval != QMessageBox::Yes) {
+        // Rewind canceled
+        return;
+    }
+
+    // Restart and rewind
+    buildParameterlist(REWIND);
+}
+
+/** Restart wallet with "-rewindblockindex <week number of blocks>" */
+void SettingsWalletRepairWidget::walletWeekRewind()
+{
+    QString rewindWarning = tr("This will rewind your blocks to the last week blockchain state.<br /><br />");
+    rewindWarning +=   tr("Do you want to continue?.<br />");
+    QMessageBox::StandardButton retval = QMessageBox::question(this, tr("Confirm resync Blockchain"),
+        rewindWarning,
+        QMessageBox::Yes | QMessageBox::Cancel,
+        QMessageBox::Cancel);
+
+    if (retval != QMessageBox::Yes) {
+        // Rewind canceled
+        return;
+    }
+
+    auto numBlocks = WEEK_IN_SECONDS / Params().GetConsensus().nTargetSpacing;
+    std::string param = "";
+
+    if (numBlocks <= chainActive.Height()) {
+        param = std::to_string(numBlocks);
+    }
+
+    // Restart and rewind
+    buildParameterlist(tr((REWIND.toStdString() + param).c_str()));
+}
+
+/** Restart wallet with "-resync" */
+void SettingsWalletRepairWidget::walletBootstrap()
+{
+    QString bootstrapWarning = tr("This will delete your local blockchain folders and the wallet will load all blockchain from source.<br /><br />");
+    bootstrapWarning +=   tr("This needs a few minutes to load all data.<br /><br />");
+    bootstrapWarning +=   tr("Your transactions and funds will be visible again after the download has completed.<br /><br />");
+    bootstrapWarning +=   tr("Do you want to continue?.<br />");
+    QMessageBox::StandardButton retval = QMessageBox::question(this, tr("Confirm bootstrap Blockchain"),
+                                                               bootstrapWarning,
+                                                               QMessageBox::Yes | QMessageBox::Cancel,
+                                                               QMessageBox::Cancel);
+
+    if (retval != QMessageBox::Yes) {
+        // Resync canceled
+        return;
+    }
+
+    // Restart and resync
+    buildParameterlist(BOOTSTRAP);
+}
+
 /** Build command-line parameter list for restart */
 void SettingsWalletRepairWidget::buildParameterlist(QString arg)
 {
@@ -115,6 +186,8 @@ void SettingsWalletRepairWidget::buildParameterlist(QString arg)
     args.removeAll(ZAPTXES2);
     args.removeAll(UPGRADEWALLET);
     args.removeAll(REINDEX);
+    args.removeAll(RESYNC);
+    args.removeAll(REWIND);
 
     // Append repair parameter to command line.
     args.append(arg);

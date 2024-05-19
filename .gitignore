@@ -3,10 +3,9 @@
 *.sublime-workspace
 todo.txt
 reset-files.bash
-
 *.tar.gz
-
 *.exe
+configure~
 
 # DSW
 src/__decenomy__
@@ -345,3 +344,4 @@ __decenomy__d-new-gui.*
 # for Visual Studio Code
 
 .vscode/*
+null.d

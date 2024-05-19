@@ -22,7 +22,7 @@
 #include "wallet/wallet.h"
 #endif // ENABLE_WALLET
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/iostreams/concepts.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <boost/shared_ptr.hpp>
@@ -32,6 +32,7 @@
 
 #include <univalue.h>
 
+using namespace boost::placeholders;
 
 static bool fRPCRunning = false;
 static bool fRPCInWarmup = true;
@@ -298,6 +299,7 @@ static const CRPCCommand vRPCCommands[] =
         {"network", "setban", &setban, true },
         {"network", "listbanned", &listbanned, true },
         {"network", "clearbanned", &clearbanned, true },
+        {"network", "checkconnection", &checkconnection, true },
 
         /* Block chain and UTXO */
         {"blockchain", "getblockindexstats", &getblockindexstats, true },
@@ -318,6 +320,7 @@ static const CRPCCommand vRPCCommands[] =
         {"blockchain", "reconsiderblock", &reconsiderblock, true },
         {"blockchain", "verifychain", &verifychain, true },
         {"blockchain", "getburnaddresses", &getburnaddresses, true },
+        {"blockchain", "rewindblockindex", &rewindblockindex, true },
 
         /* Mining */
         {"mining", "getblocktemplate", &getblocktemplate, true },
@@ -367,14 +370,17 @@ static const CRPCCommand vRPCCommands[] =
         {"__decenomy__", "relaymasternodebroadcast", &relaymasternodebroadcast, true },
         {"__decenomy__", "masternodecurrent", &masternodecurrent, true },
         {"__decenomy__", "startmasternode", &startmasternode, true },
+        {"__decenomy__", "reloadmasternodeconfig", &reloadmasternodeconfig, true },
         {"__decenomy__", "createmasternodekey", &createmasternodekey, true },
         {"__decenomy__", "getmasternodeoutputs", &getmasternodeoutputs, true },
         {"__decenomy__", "listmasternodeconf", &listmasternodeconf, true },
+        {"__decenomy__", "getactivemasternodecount", &getactivemasternodecount, true },
         {"__decenomy__", "getmasternodestatus", &getmasternodestatus, true },
         {"__decenomy__", "getmasternodewinners", &getmasternodewinners, true },
         {"__decenomy__", "getmasternodescores", &getmasternodescores, true },
         {"__decenomy__", "mnsync", &mnsync, true },
         {"__decenomy__", "spork", &spork, true },
+        {"__decenomy__", "mnping", &mnping, true },
 
 #ifdef ENABLE_WALLET
         /* Wallet */

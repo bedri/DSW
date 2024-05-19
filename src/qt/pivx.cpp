@@ -263,6 +263,7 @@ void BitcoinCore::initialize()
         qDebug() << __func__ << ": Running AppInit2 in thread";
         int rv = AppInit2();
         Q_EMIT initializeResult(rv);
+        fStakingActive = false;
     } catch (const std::exception& e) {
         handleRunawayException(&e);
     } catch (...) {
@@ -467,7 +468,7 @@ void BitcoinApplication::initializeResult(int retval)
     returnValue = retval ? 0 : 1;
     if (retval) {
 #ifdef ENABLE_WALLET
-        PaymentServer::LoadRootCAs();
+        //PaymentServer::LoadRootCAs();
         paymentServer->setOptionsModel(optionsModel);
 #endif
 
@@ -480,9 +481,10 @@ void BitcoinApplication::initializeResult(int retval)
 
             window->addWallet(PIVXGUI::DEFAULT_WALLET, walletModel);
             window->setCurrentWallet(PIVXGUI::DEFAULT_WALLET);
-
+            /*
             connect(walletModel, &WalletModel::coinsSent,
                     paymentServer, &PaymentServer::fetchPaymentACK);
+            */
         }
 #endif
 

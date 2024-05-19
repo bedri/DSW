@@ -3227,7 +3227,7 @@ There was an error trying to save the address list to %1. Please try again.</sou
                            __DSW__ utilizes a Proof of Stake (PoS) consensus system algorithm,
                            allowing all owners of __DSW__ to participate in earning block rewards
                            while securing the network with full node wallets, as well as to
-                           run Masternodes to earn additional income regulary.
+                           run Masternodes to earn additional income regularly.
                            &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
                          </source>
         <translation>
@@ -4196,7 +4196,7 @@ Are you sure?
         <translation>加注激活</translation>
     </message>
     <message>
-        <source>Staking not active</source>
+        <source>Staking inactive</source>
         <translation>加注没激活</translation>
     </message>
     <message>

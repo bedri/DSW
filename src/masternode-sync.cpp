@@ -72,14 +72,17 @@ bool CMasternodeSync::IsBlockchainSynced()
         blockTime = pindex->nTime;
     }
 
-    if(sporkManager.GetSporkValue(SPORK_104_MAX_BLOCK_TIME) > lastProcess) {
-        if (blockTime + 60 * 60 < lastProcess)
-            return false;
-    }
+    auto maxBlockTime = sporkManager.GetSporkValue(SPORK_104_MAX_BLOCK_TIME);
+
+    if (maxBlockTime > lastProcess && blockTime + HOUR_IN_SECONDS < lastProcess)
+        return false;
+
+    if (maxBlockTime <= lastProcess && blockTime + HOUR_IN_SECONDS < maxBlockTime)
+        return false;
 
     fBlockchainSynced = true;
 
-    return true;
+    return fBlockchainSynced;
 }
 
 void CMasternodeSync::Reset()
@@ -232,7 +235,12 @@ void CMasternodeSync::Process()
         return;
     }
 
-    LogPrint(BCLog::MASTERNODE, "CMasternodeSync::Process() - tick %d RequestedMasternodeAssets %d\n", tick, RequestedMasternodeAssets);
+    LogPrint(
+        BCLog::MASTERNODE, "%s - tick %d RequestedMasternodeAssets %d\n", 
+        __func__, 
+        tick, 
+        RequestedMasternodeAssets
+    );
 
     if (RequestedMasternodeAssets == MASTERNODE_SYNC_INITIAL) GetNextAsset();
 
@@ -279,8 +287,23 @@ bool CMasternodeSync::SyncWithNode(CNode* pnode, bool isRegTestNet)
     if (pnode->nVersion >= ActiveProtocol()) {
         if (RequestedMasternodeAssets == MASTERNODE_SYNC_LIST) {
 
-            LogPrint(BCLog::MASTERNODE, "CMasternodeSync::Process() - lastMasternodeList %lld (GetTime() - MASTERNODE_SYNC_TIMEOUT) %lld\n", lastMasternodeList, GetTime() - MASTERNODE_SYNC_TIMEOUT);
-            if (lastMasternodeList > 0 && lastMasternodeList < GetTime() - MASTERNODE_SYNC_TIMEOUT * 2 && RequestedMasternodeAttempt >= MASTERNODE_SYNC_THRESHOLD) { //hasn't received a new item in the last five seconds, so we'll move to the
+            // With SPORK_114_MN_PAYMENT_V2 there is more time to sync the mn list
+            // due to the fact that the MASTERNODE_SYNC_MNW phase is skipped
+            auto syncFactor = sporkManager.IsSporkActive(SPORK_114_MN_PAYMENT_V2) ? 4 : 2;
+
+            LogPrint(
+                BCLog::MASTERNODE, 
+                "%s - lastMasternodeList %lld (GetTime() - MASTERNODE_SYNC_TIMEOUT) %lld\n", 
+                __func__,
+                lastMasternodeList, 
+                GetTime() - MASTERNODE_SYNC_TIMEOUT * syncFactor
+            );
+
+            if (lastMasternodeList > 0 && countMasternodeList > 0 &&
+                lastMasternodeList < GetTime() - MASTERNODE_SYNC_TIMEOUT * syncFactor && 
+                RequestedMasternodeAttempt >= MASTERNODE_SYNC_THRESHOLD &&
+                mnodeman.CountEnabled() >= (sumMasternodeList * 90) / (countMasternodeList * 100) // only move on after getting a properly sized MN list
+            ) { // hasn't received a new item in the last 20 seconds, so we'll move to the next step
                 GetNextAsset();
                 return false;
             }
@@ -312,12 +335,13 @@ bool CMasternodeSync::SyncWithNode(CNode* pnode, bool isRegTestNet)
 
         if (RequestedMasternodeAssets == MASTERNODE_SYNC_MNW) {
 
-            if (sporkManager.IsSporkActive(SPORK_112_MASTERNODE_LAST_PAID_V2)) {
+            if (sporkManager.IsSporkActive(SPORK_114_MN_PAYMENT_V2)) { // voting is disabled
                 GetNextAsset();
+                amnodeman.ManageStatus();
                 return false;
             }
             
-            if (lastMasternodeWinner > 0 && lastMasternodeWinner < GetTime() - MASTERNODE_SYNC_TIMEOUT * 2 && RequestedMasternodeAttempt >= MASTERNODE_SYNC_THRESHOLD) { //hasn't received a new item in the last five seconds, so we'll move to the
+            if (lastMasternodeWinner > 0 && lastMasternodeWinner < GetTime() - MASTERNODE_SYNC_TIMEOUT && RequestedMasternodeAttempt >= MASTERNODE_SYNC_THRESHOLD) { //hasn't received a new item in the last five seconds, so we'll move to the
                 GetNextAsset();
                 amnodeman.ManageStatus();
                 return false;

@@ -29,6 +29,8 @@
 #include <QDebug>
 #include <QTimer>
 
+using namespace boost::placeholders;
+
 static const int64_t nClientStartupTime = GetTime();
 // Last tip update notification
 static int64_t nLastBlockTipUpdateNotification = 0;
@@ -78,7 +80,7 @@ int ClientModel::getNumConnections(unsigned int flags) const
 QString ClientModel::getMasternodeCountString() const
 {
     int ipv4 = 0, ipv6 = 0, onion = 0;
-    mnodeman.CountNetworks(ActiveProtocol(), ipv4, ipv6, onion);
+    mnodeman.CountNetworks(ipv4, ipv6, onion);
     int nUnknown = mnodeman.size() - ipv4 - ipv6 - onion;
     if(nUnknown < 0) nUnknown = 0;
     return tr("Total: %1 (IPv4: %2 / IPv6: %3 / Tor: %4 / Unknown: %5)").arg(QString::number((int)mnodeman.size())).arg(QString::number((int)ipv4)).arg(QString::number((int)ipv6)).arg(QString::number((int)onion)).arg(QString::number((int)nUnknown));

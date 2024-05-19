@@ -20,6 +20,7 @@
 #include "activemasternodeconfig.h"
 #include "addrman.h"
 #include "amount.h"
+#include "bootstrap.h"
 #include "checkpoints.h"
 #include "compat/sanity.h"
 #include "consensus/upgrades.h"
@@ -36,6 +37,7 @@
 #include "netbase.h"
 #include "net.h"
 #include "policy/policy.h"
+#include "rewards.h"
 #include "rpc/server.h"
 #include "script/standard.h"
 #include "scheduler.h"
@@ -86,12 +88,6 @@ int nWalletBackups = 10;
 #endif
 volatile bool fFeeEstimatesInitialized = false;
 volatile bool fRestartRequested = false; // true: restart false: shutdown
-static const bool DEFAULT_PROXYRANDOMIZE = true;
-static const bool DEFAULT_REST_ENABLE = false;
-static const bool DEFAULT_DISABLE_SAFEMODE = false;
-static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
-static const bool DEFAULT_MASTERNODE  = false;
-static const bool DEFAULT_MNCONFLOCK = true;
 
 std::unique_ptr<CConnman> g_connman;
 
@@ -244,6 +240,9 @@ void PrepareShutdown()
 
     {
         LOCK(cs_main);
+
+        CRewards::Shutdown();
+
         if (pcoinsTip != NULL) {
             FlushStateToDisk();
 
@@ -403,13 +402,12 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-pid=<file>", strprintf(_("Specify pid file (default: %s)"), PIVX_PID_FILENAME));
 #endif
     strUsage += HelpMessageOpt("-reindex", _("Rebuild block chain index from current blk000??.dat files") + " " + _("on startup"));
-    strUsage += HelpMessageOpt("-reindexmoneysupply", strprintf(_("Reindex the %s and z%s money supply statistics"), CURRENCY_UNIT, CURRENCY_UNIT) + " " + _("on startup"));
     strUsage += HelpMessageOpt("-resync", _("Delete blockchain folders and resync from scratch") + " " + _("on startup"));
+    strUsage += HelpMessageOpt("-rewindblockindex[=<n or hash>]", _("When used without a value, rewinds blockchain to last checkpoint. When passing a number, rolls back the chain by the given number of blocks. When passing a block hash (as a hex string), rewind up to (not including) the block with the matching hash."));
 #if !defined(WIN32)
     strUsage += HelpMessageOpt("-sysperms", _("Create new files with system default permissions, instead of umask 077 (only effective with disabled wallet functionality)"));
 #endif
     strUsage += HelpMessageOpt("-txindex", strprintf(_("Maintain a full transaction index, used by the getrawtransaction rpc call (default: %u)"), DEFAULT_TXINDEX));
-    strUsage += HelpMessageOpt("-forcestart", _("Attempt to force blockchain corruption recovery") + " " + _("on startup"));
 
     strUsage += HelpMessageGroup(_("Connection options:"));
     strUsage += HelpMessageOpt("-addnode=<ip>", _("Add a node to connect to and attempt to keep the connection open"));
@@ -917,42 +915,6 @@ void InitLogging()
     LogPrintf("__Decenomy__ version %s (%s)\n", version_string, CLIENT_DATE);
 }
 
-bool AppInitActiveMasternode(std::string strAlias, std::string strMasterNodePrivKey)
-{
-    if (strAlias.empty()) {
-        return UIError(_("activemasternode alias cannot be empty"));
-    }
-
-    CActiveMasternode activeMasternode;
-
-    activeMasternode.strAlias = strAlias;
-
-    activeMasternode.strMasterNodePrivKey = strMasterNodePrivKey;
-
-    std::string errorMessage;
-
-    CKey key;
-    CPubKey pubkey;
-
-    if (!CMessageSigner::GetKeysFromSecret(activeMasternode.strMasterNodePrivKey, key, pubkey)) {
-        return UIError(_("Invalid masternodeprivkey. Please see documenation."));
-    }
-
-    activeMasternode.pubKeyMasternode = pubkey;
-
-    amnodeman.Add(activeMasternode);
-
-    return true;
-}
-
-bool AppInitActiveMasternode(CActiveMasternodeConfig::CActiveMasternodeEntry activeMasternodeEntry)
-{
-    return AppInitActiveMasternode(
-        activeMasternodeEntry.strAlias,
-        activeMasternodeEntry.strMasterNodePrivKey
-    );
-}
-
 /** Initialize __decenomy__.
  *  @pre Parameters should be parsed and config file should be read.
  */
@@ -1104,6 +1066,12 @@ bool AppInit2()
         return false;
 
     // ********************************************************* Step 4: application initialization: dir lock, daemonize, pidfile, debug log
+
+    fReindex = GetBoolArg("-reindex", false);
+
+    // Initialize dynamic rewards
+    if(!CRewards::Init(fReindex)) 
+        return false;
 
     // Initialize elliptic curve code
     RandomInit();
@@ -1275,6 +1243,24 @@ bool AppInit2()
             }
         }
 
+#ifdef ENABLE_BOOTSTRAP
+        if (GetBoolArg("-bootstrap", false) ) {
+
+            uiInterface.InitMessage(_("Preparing for bootstrap..."));
+
+            try {
+                if (!CBootstrap::DownloadAndApply()) {
+                    return UIError(_("Unable to download and apply the bootstrap file. See debug log for details."));
+                }
+
+            } catch (const std::exception& e) {
+                uiInterface.ThreadSafeMessageBox(_("Error downloading and applying the bootstrap file, shutting down."), "", CClientUIInterface::MSG_ERROR);
+                LogPrintf("Error downloading and applying the bootstrap file: %s\n", e.what());
+                return false;
+            }
+        }
+#endif
+
         if (!CWallet::Verify())
             return false;
 
@@ -1440,8 +1426,6 @@ bool AppInit2()
 
     // ********************************************************* Step 7: load block chain
 
-    fReindex = GetBoolArg("-reindex", false);
-
     // Create blocks directory if it doesn't already exist
     fs::create_directories(GetDataDir() / "blocks");
 
@@ -1460,6 +1444,8 @@ bool AppInit2()
     LogPrintf("* Using %.1fMiB for block index database\n", nBlockTreeDBCache * (1.0 / 1024 / 1024));
     LogPrintf("* Using %.1fMiB for chain state database\n", nCoinDBCache * (1.0 / 1024 / 1024));
     LogPrintf("* Using %.1fMiB for in-memory UTXO set\n", nCoinCacheUsage * (1.0 / 1024 / 1024));
+
+    const CChainParams& chainparams = Params();
 
     bool fLoaded = false;
     while (!fLoaded && !ShutdownRequested()) {
@@ -1530,36 +1516,26 @@ bool AppInit2()
                     break;
                 }
 
-                {
-                    LOCK(cs_main);
-                    nMoneySupply = 0;
-
-                    std::unique_ptr<CCoinsViewCursor> pcursor(pcoinsTip->Cursor());
-
-                    while (pcursor->Valid()) {
-                        boost::this_thread::interruption_point();
-                        COutPoint key;
-                        Coin coin;
-                        if (pcursor->GetKey(key) && pcursor->GetValue(coin)) {
-                            // ----------- burn address scanning -----------
-                            CTxDestination source;
-                            if (ExtractDestination(coin.out.scriptPubKey, source)) {
-                                const std::string addr = EncodeDestination(source);
-                                if (consensus.mBurnAddresses.find(addr) != consensus.mBurnAddresses.end() &&
-                                    consensus.mBurnAddresses.at(addr) < chainActive.Height()) 
-                                {
-                                    pcursor->Next();
-                                    continue;
-                                }
-                            }
-                            nMoneySupply += coin.out.nValue;
-                        }
-                        pcursor->Next();
-                    }
-                }
-
                 if (!fReindex) {
                     uiInterface.InitMessage(_("Verifying blocks..."));
+
+                    // If the active chain has blocks and -rewindblockindex option is enabled.
+                    if (chainActive.Tip() != NULL && !SoftSetBoolArg("-rewindblockindex", false)) {
+
+                        // Figure out whether we got a parameter with -rewindblockindex, what type it is,
+                        // and how many blocks to rewind.
+                        std::string targetBlockHashStr = GetArg("-rewindblockindex", "");
+
+                        uiInterface.InitMessage(_("Rewinding blocks..."));
+
+                        if (!RewindBlockIndex(targetBlockHashStr)) {
+                            strLoadError = _("Unable to rewind the blockchain. You will need to redownload the blockchain");
+                            break;
+                        }
+
+                        // Clear the banned adresses to aid the recovery of a possible fork
+                        g_connman->ClearBanned();
+                    }
 
                     // Flag sent to validation code to let it know it can skip certain checks
                     fVerifyingBlocks = true;
@@ -1725,19 +1701,15 @@ bool AppInit2()
     if (fMasterNode) {
         LogPrintf("IS MASTER NODE\n");
 
-        //legacy
-        if(!GetArg("-masternodeprivkey", "").empty()) 
-        {
-            if(!AppInitActiveMasternode("legacy", GetArg("-masternodeprivkey", ""))) return false;
-        } else {
-            // multinode
-            std::string strErr;
-            if (!activeMasternodeConfig.read(strErr)) {
-                return UIError(strprintf(_("Error reading active masternode configuration file: %s"), strErr));
-            }
+        std::string strErr;
+        if (!amnodeman.Load(strErr)) {
+            return UIError(strprintf(_("Error reading active masternode configuration file: %s"), strErr));
+        }
 
-            for(auto& ame : activeMasternodeConfig.getEntries()) {
-                if(!AppInitActiveMasternode(ame)) return false;
+        // legacy
+        if (amnodeman.Count() == 0 && !GetArg("-masternodeprivkey", "").empty()) {
+            if (!amnodeman.Add("legacy", GetArg("-masternodeprivkey", ""), strErr)) {
+                return UIError(strprintf(_("Error reading masternodeprivkey: %s"), strErr));
             }
         }
     }
@@ -1826,8 +1798,9 @@ bool AppInit2()
     if (pwalletMain) {
         pwalletMain->postInitProcess(threadGroup);
 
+        fStaking = GetBoolArg("-staking", !Params().IsRegTestNet() && DEFAULT_STAKING);
         // StakeMiner thread disabled by default on regtest
-        if (GetBoolArg("-staking", !Params().IsRegTestNet() && DEFAULT_STAKING)) {
+        if (fStaking) {
             threadGroup.create_thread(boost::bind(&ThreadStakeMinter));
         }
     }

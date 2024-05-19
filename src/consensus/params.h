@@ -33,6 +33,8 @@ enum UpgradeIndex : uint32_t {
     UPGRADE_P2PKH_BLOCK_SIGNATURES,
     UPGRADE_STAKE_MIN_DEPTH_V2,
     UPGRADE_MASTERNODE_RANK_V2,
+    UPGRADE_DYNAMIC_REWARDS,
+    UPGRADE_DYNAMIC_COLLATERALS,
     // NOTE: Also add new upgrades to NetworkUpgradeInfo in upgrades.cpp
     UPGRADE_TESTDUMMY,
     MAX_NETWORK_UPGRADES,
@@ -102,6 +104,8 @@ struct Params {
     int64_t nTargetSpacing;
     int nTimeSlotLength;
 
+    int nRewardAdjustmentInterval;
+
     // burn addresses
     std::map<std::string, int> mBurnAddresses = {};
 
@@ -114,10 +118,12 @@ struct Params {
     // Map with network updates
     NetworkUpgrade vUpgrades[MAX_NETWORK_UPGRADES];
 
+    int64_t TargetTimespan(const int nHeight) const { return IsTimeProtocolV2(nHeight) ? nTargetTimespanV2 : nTargetTimespan; }
     int64_t TargetTimespan(const bool fV2 = true) const { return fV2 ? nTargetTimespanV2 : nTargetTimespan; }
     uint256 ProofOfStakeLimit(const bool fV2) const { return fV2 ? posLimitV2 : posLimitV1; }
     bool MoneyRange(const CAmount& nValue) const { return (nValue >= 0 && nValue <= nMaxMoneyOut); }
     bool IsTimeProtocolV2(const int nHeight) const { return NetworkUpgradeActive(nHeight, UPGRADE_TIME_PROTOCOL_V2); }
+    int TimeSlotLength(const int nHeight) const { return IsTimeProtocolV2(nHeight) ? nTimeSlotLength : 1; }
 
     int FutureBlockTimeDrift(const int nHeight) const
     {

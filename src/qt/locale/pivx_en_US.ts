@@ -3509,7 +3509,7 @@ There was an error trying to save the address list to %1. Please try again.</tra
                            __DSW__ utilizes a Proof of Stake (PoS) consensus system algorithm,
                            allowing all owners of __DSW__ to participate in earning block rewards
                            while securing the network with full node wallets, as well as to
-                           run Masternodes to earn additional income regulary.
+                           run Masternodes to earn additional income regularly.
                            &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
                          </source>
         <translation>
@@ -3522,7 +3522,7 @@ There was an error trying to save the address list to %1. Please try again.</tra
                            __DSW__ utilizes a Proof of Stake (PoS) consensus system algorithm,
                            allowing all owners of __DSW__ to participate in earning block rewards
                            while securing the network with full node wallets, as well as to
-                           run Masternodes to earn additional income regulary.
+                           run Masternodes to earn additional income regularly.
                            &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
                          </translation>
     </message>
@@ -4579,8 +4579,8 @@ Are you sure?
         <translation>Staking active</translation>
     </message>
     <message>
-        <source>Staking not active</source>
-        <translation>Staking not active</translation>
+        <source>Staking inactive</source>
+        <translation>Staking inactive</translation>
     </message>
     <message numerus="yes">
         <source>%n active connection(s)</source>
