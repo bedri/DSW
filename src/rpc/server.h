@@ -265,8 +265,6 @@ extern UniValue getmasternodeoutputs(const JSONRPCRequest& request);
 extern UniValue listmasternodeconf(const JSONRPCRequest& request);
 extern UniValue getactivemasternodecount(const JSONRPCRequest& request);
 extern UniValue getmasternodestatus(const JSONRPCRequest& request);
-extern UniValue getmasternodewinners(const JSONRPCRequest& request);
-extern UniValue getmasternodescores(const JSONRPCRequest& request);
 extern UniValue mnping(const JSONRPCRequest& request);
 
 extern UniValue getinfo(const JSONRPCRequest& request); // in rpc/misc.cpp
@@ -278,6 +276,7 @@ extern UniValue createmultisig(const JSONRPCRequest& request);
 extern UniValue verifymessage(const JSONRPCRequest& request);
 extern UniValue setmocktime(const JSONRPCRequest& request);
 extern UniValue getstakingstatus(const JSONRPCRequest& request);
+extern UniValue getrewardsinfo(const JSONRPCRequest& request);
 
 bool StartRPC();
 void InterruptRPC();

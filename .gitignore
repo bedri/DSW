@@ -6,6 +6,7 @@ reset-files.bash
 *.tar.gz
 *.exe
 configure~
+deploy/
 
 # DSW
 src/__decenomy__
@@ -345,3 +346,7 @@ __decenomy__d-new-gui.*
 
 .vscode/*
 null.d
+
+# Include specific files
+!build.yml
+!build.sh

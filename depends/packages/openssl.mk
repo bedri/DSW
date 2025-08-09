@@ -1,7 +1,9 @@
 package=openssl
 $(package)_version=1.1.1w
 #$(package)_download_path=https://www.openssl.org/source/old/1.1.1/
-$(package)_download_path=https://github.com/decenomy/depends/raw/main/
+# https://ipfs.decenomy.net/QmRtgHuSAGdjiWAD2YpdG79fjqLc59EUHUAxDdBi12SzYP?filename=openssl-1.1.1w.tar.gz
+$(package)_download_path=https://ipfs.decenomy.net
+$(package)_download_file=QmRtgHuSAGdjiWAD2YpdG79fjqLc59EUHUAxDdBi12SzYP
 $(package)_file_name=$(package)-$($(package)_version).tar.gz
 $(package)_sha256_hash=cf3098950cb4d853ad95c0841f1f9c6d3dc102dccfcacd521d93925208b76ac8
 
@@ -63,6 +65,7 @@ $(package)_config_opts_alpha_linux=linux-generic64
 $(package)_config_opts_m68k_linux=linux-generic32
 $(package)_config_opts_x86_64_darwin=darwin64-x86_64-cc
 $(package)_config_opts_x86_64_mingw32=mingw64
+$(package)_config_opts_x86_64_mingw32+=RC=x86_64-w64-mingw32-windres
 $(package)_config_opts_i686_mingw32=mingw
 endef
 

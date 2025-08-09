@@ -376,8 +376,6 @@ static const CRPCCommand vRPCCommands[] =
         {"__decenomy__", "listmasternodeconf", &listmasternodeconf, true },
         {"__decenomy__", "getactivemasternodecount", &getactivemasternodecount, true },
         {"__decenomy__", "getmasternodestatus", &getmasternodestatus, true },
-        {"__decenomy__", "getmasternodewinners", &getmasternodewinners, true },
-        {"__decenomy__", "getmasternodescores", &getmasternodescores, true },
         {"__decenomy__", "mnsync", &mnsync, true },
         {"__decenomy__", "spork", &spork, true },
         {"__decenomy__", "mnping", &mnping, true },
@@ -388,6 +386,7 @@ static const CRPCCommand vRPCCommands[] =
         {"wallet", "bip38decrypt", &bip38decrypt, true },
         {"wallet", "getaddressinfo", &getaddressinfo, true },
         {"wallet", "getstakingstatus", &getstakingstatus, false },
+        {"wallet", "getrewardsinfo", &getrewardsinfo, false },
         {"wallet", "multisend", &multisend, false },
 
 #endif // ENABLE_WALLET
