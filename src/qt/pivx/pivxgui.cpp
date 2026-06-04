@@ -18,6 +18,7 @@
 #include "qt/pivx/qtutils.h"
 #include "qt/pivx/defaultdialog.h"
 #include "qt/pivx/settings/settingsfaqwidget.h"
+#include "qt/pivx/smartcontractwidget.h"
 
 #include "init.h"
 #include "util.h"
@@ -127,7 +128,7 @@ PIVXGUI::PIVXGUI(const NetworkStyle* networkStyle, QWidget* parent) :
         addressesWidget = new AddressesWidget(this);
         masterNodesWidget = new MasterNodesWidget(this);
         settingsWidget = new SettingsWidget(this);
-        smartContractWidget = new QWidget(this);
+        smartContractWidget = new SmartContractWidget(this);
 
         // Add to parent
         stackedContainer->addWidget(dashboard);
@@ -622,9 +623,11 @@ bool PIVXGUI::addWallet(const QString& name, WalletModel* walletModel)
     addressesWidget->setWalletModel(walletModel);
     masterNodesWidget->setWalletModel(walletModel);
     settingsWidget->setWalletModel(walletModel);
+    smartContractWidget->setWalletModel(walletModel);
 
     // Connect actions..
     connect(walletModel, &WalletModel::message, this, &PIVXGUI::message);
+    connect(smartContractWidget, &SmartContractWidget::message, this, &PIVXGUI::message);
     connect(masterNodesWidget, &MasterNodesWidget::message, this, &PIVXGUI::message);
     connect(topBar, &TopBar::message, this, &PIVXGUI::message);
     connect(sendWidget, &SendWidget::message,this, &PIVXGUI::message);

@@ -21,6 +21,7 @@ QT_FORMS_UI = \
   qt/pivx/forms/loadingdialog.ui \
   qt/pivx/forms/snackbar.ui \
   qt/pivx/forms/navmenuwidget.ui \
+  qt/pivx/forms/smartcontractwidget.ui \
   qt/pivx/forms/lockunlock.ui \
   qt/pivx/forms/expandablebutton.ui \
   qt/pivx/forms/receivedialog.ui \
@@ -102,6 +103,7 @@ QT_MOC_CPP = \
   qt/pivx/moc_focuseddialog.cpp \
   qt/pivx/moc_snackbar.cpp \
   qt/pivx/moc_navmenuwidget.cpp \
+  qt/pivx/moc_smartcontractwidget.cpp \
   qt/pivx/moc_lockunlock.cpp \
   qt/pivx/moc_expandablebutton.cpp \
   qt/pivx/moc_furabstractlistitemdelegate.cpp \
@@ -216,6 +218,7 @@ BITCOIN_QT_H = \
   qt/pivx/guitransactionsutils.h \
   qt/pivx/snackbar.h \
   qt/pivx/navmenuwidget.h \
+  qt/pivx/smartcontractwidget.h \
   qt/pivx/lockunlock.h \
   qt/pivx/receivedialog.h \
   qt/pivx/furlistrow.h \
@@ -521,6 +524,7 @@ BITCOIN_QT_WALLET_CPP = \
   qt/pivx/guitransactionsutils.cpp \
   qt/pivx/snackbar.cpp \
   qt/pivx/navmenuwidget.cpp \
+  qt/pivx/smartcontractwidget.cpp \
   qt/pivx/lockunlock.cpp \
   qt/pivx/receivedialog.cpp \
   qt/pivx/furabstractlistitemdelegate.cpp \

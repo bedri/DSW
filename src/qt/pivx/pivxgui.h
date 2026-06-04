@@ -31,6 +31,7 @@ class ClientModel;
 class NetworkStyle;
 class Notificator;
 class WalletModel;
+class SmartContractWidget;
 
 
 /**
@@ -134,7 +135,7 @@ private:
     AddressesWidget *addressesWidget = nullptr;
     MasterNodesWidget *masterNodesWidget = nullptr;
     SettingsWidget* settingsWidget = nullptr;
-    QWidget *smartContractWidget = nullptr;
+    SmartContractWidget *smartContractWidget = nullptr;
 
     SnackBar *snackBar = nullptr;
 
