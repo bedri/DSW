@@ -10,7 +10,10 @@
     <height>700</height>
    </rect>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout_Main" stretch="1,1">
+  <property name="windowTitle">
+   <string>Smart Contract</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_Root">
    <property name="spacing">
     <number>0</number>
    </property>
@@ -27,353 +30,1009 @@
     <number>0</number>
    </property>
    <item>
-    <!-- Left Side Container -->
-    <widget class="QFrame" name="left">
-     <layout class="QVBoxLayout" name="verticalLayout_Left">
-      <property name="leftMargin">
-       <number>20</number>
-      </property>
-      <property name="rightMargin">
-       <number>20</number>
-      </property>
-      <property name="topMargin">
-       <number>20</number>
-      </property>
-      <property name="bottomMargin">
-       <number>20</number>
-      </property>
-      <item>
-       <widget class="QLabel" name="labelTitle">
-        <property name="text">
-         <string>Smart Contract Builder</string>
-        </property>
-        <property name="textFormat">
-         <enum>Qt::PlainText</enum>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="labelSubtitle1">
-        <property name="text">
-         <string>Build, compile, and deploy MESCAL smart contracts on regtest.</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="verticalSpacer_1">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Fixed</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>10</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QTabWidget" name="tabWidget">
-        <property name="currentIndex">
-         <number>0</number>
-        </property>
-        <widget class="QWidget" name="tabTimeLock">
-         <attribute name="title">
-          <string>Time-Locked</string>
-         </attribute>
-         <layout class="QFormLayout" name="formLayout_TimeLock">
-          <property name="fieldGrowthPolicy">
-           <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+    <!-- Top-level mode switcher tabs -->
+    <widget class="QTabWidget" name="tabWidgetMode">
+     <property name="tabPosition">
+      <enum>QTabWidget::North</enum>
+     </property>
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+
+     <!-- ═══════════════════════════════════════
+          TAB 1 : BUILD & PUBLISH
+          ═══════════════════════════════════════ -->
+     <widget class="QWidget" name="tabBuild">
+      <attribute name="title">
+       <string>Build &amp; Publish</string>
+      </attribute>
+      <layout class="QHBoxLayout" name="horizontalLayout_Build">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+
+       <!-- LEFT: builder form -->
+       <item>
+        <widget class="QFrame" name="left">
+         <layout class="QVBoxLayout" name="verticalLayout_Left">
+          <property name="leftMargin">
+           <number>20</number>
           </property>
           <property name="topMargin">
-           <number>15</number>
+           <number>20</number>
           </property>
-          <item row="0" column="0">
-           <widget class="QLabel" name="lblTLName">
+          <property name="rightMargin">
+           <number>20</number>
+          </property>
+          <property name="bottomMargin">
+           <number>20</number>
+          </property>
+
+          <item>
+           <widget class="QLabel" name="labelTitle">
+            <property name="textFormat">
+             <enum>Qt::PlainText</enum>
+            </property>
             <property name="text">
-             <string>Contract Name:</string>
+             <string>Smart Contract Builder</string>
             </property>
            </widget>
           </item>
-          <item row="0" column="1">
-           <widget class="QLineEdit" name="lineEditNameTimeLock">
+
+          <item>
+           <widget class="QLabel" name="labelSubtitle1">
             <property name="text">
-             <string>TimeLockContract</string>
+             <string>Build, compile, and deploy MESCAL smart contracts.</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="lblTLExpiry">
+
+          <item>
+           <spacer name="verticalSpacer_1">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>10</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+
+          <!-- Contract type tabs -->
+          <item>
+           <widget class="QTabWidget" name="tabWidget">
+            <property name="currentIndex">
+             <number>0</number>
+            </property>
+
+            <!-- Time-Locked -->
+            <widget class="QWidget" name="tabTimeLock">
+             <attribute name="title">
+              <string>Time-Locked</string>
+             </attribute>
+             <layout class="QFormLayout" name="formLayout_TimeLock">
+              <property name="leftMargin">
+               <number>-1</number>
+              </property>
+              <property name="topMargin">
+               <number>15</number>
+              </property>
+              <property name="fieldGrowthPolicy">
+               <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+              </property>
+              <item row="0" column="0">
+               <widget class="QLabel" name="lblTLName">
+                <property name="text">
+                 <string>Contract Name:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLineEdit" name="lineEditNameTimeLock">
+                <property name="text">
+                 <string>TimeLockContract</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="lblTLExpiry">
+                <property name="text">
+                 <string>Lock Until (Block/Timestamp):</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="lineEditExpiryTimeLock">
+                <property name="text">
+                 <string>150</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="lblTLPubkey">
+                <property name="text">
+                 <string>Owner Public Key (Hex):</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QLineEdit" name="lineEditPubkeyTimeLock"/>
+              </item>
+             </layout>
+            </widget>
+
+            <!-- Multi-Signature -->
+            <widget class="QWidget" name="tabMultiSig">
+             <attribute name="title">
+              <string>Multi-Signature</string>
+             </attribute>
+             <layout class="QFormLayout" name="formLayout_MultiSig">
+              <property name="leftMargin">
+               <number>-1</number>
+              </property>
+              <property name="topMargin">
+               <number>15</number>
+              </property>
+              <item row="0" column="0">
+               <widget class="QLabel" name="lblMSName">
+                <property name="text">
+                 <string>Contract Name:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLineEdit" name="lineEditNameMultiSig">
+                <property name="text">
+                 <string>MultiSigContract</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="lblMSN">
+                <property name="text">
+                 <string>Total Keys (n):</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="lineEditNMultiSig">
+                <property name="text">
+                 <string>3</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="lblMSM">
+                <property name="text">
+                 <string>Required Signatures (m):</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QLineEdit" name="lineEditMMultiSig">
+                <property name="text">
+                 <string>2</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="0">
+               <widget class="QLabel" name="lblMSKeys">
+                <property name="text">
+                 <string>Public Keys (one per line):</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="1">
+               <widget class="QPlainTextEdit" name="plainTextEditKeysMultiSig"/>
+              </item>
+             </layout>
+            </widget>
+
+            <!-- Hash-Locked -->
+            <widget class="QWidget" name="tabHashLock">
+             <attribute name="title">
+              <string>Hash-Locked</string>
+             </attribute>
+             <layout class="QFormLayout" name="formLayout_HashLock">
+              <property name="leftMargin">
+               <number>-1</number>
+              </property>
+              <property name="topMargin">
+               <number>15</number>
+              </property>
+              <item row="0" column="0">
+               <widget class="QLabel" name="lblHLName">
+                <property name="text">
+                 <string>Contract Name:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLineEdit" name="lineEditNameHashLock">
+                <property name="text">
+                 <string>HashLockContract</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="lblHLHash">
+                <property name="text">
+                 <string>Hash160 of Preimage (Hex):</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="lineEditHashHashLock"/>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="lblHLPubkey">
+                <property name="text">
+                 <string>Recipient Pubkey (Hex):</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QLineEdit" name="lineEditPubkeyHashLock"/>
+              </item>
+             </layout>
+            </widget>
+
+            <!-- Custom / Gelişmiş Tasarımcı -->
+            <widget class="QWidget" name="tabCustom">
+             <attribute name="title">
+              <string>Custom Builder</string>
+             </attribute>
+             <layout class="QVBoxLayout" name="verticalLayout_Custom">
+              <property name="spacing">
+               <number>8</number>
+              </property>
+              <property name="topMargin">
+               <number>15</number>
+              </property>
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="QTreeWidget" name="treeCustomActions">
+                <property name="columnCount">
+                 <number>2</number>
+                </property>
+                <column>
+                 <property name="text">
+                  <string>Step / Role</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Details</string>
+                 </property>
+                </column>
+               </widget>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_CustomButtons">
+                <property name="spacing">
+                 <number>6</number>
+                </property>
+                <item>
+                 <widget class="QPushButton" name="btnAddAction">
+                  <property name="text">
+                   <string>+ Add Step</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="btnRemoveAction">
+                  <property name="text">
+                   <string>- Remove</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="btnMoveActionUp">
+                  <property name="text">
+                   <string>↑ Up</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="btnMoveActionDown">
+                  <property name="text">
+                   <string>↓ Down</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btnOpenVisualDesigner">
+                <property name="text">
+                 <string>Open Visual Designer</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+
+           </widget>
+          </item>
+
+          <!-- Amount -->
+          <item>
+           <spacer name="verticalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>10</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_Amount">
+            <item>
+             <widget class="QLabel" name="labelAmount">
+              <property name="text">
+               <string>Amount to fund (DSW):</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEditAmount">
+              <property name="text">
+               <string>10.0</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+
+          <item>
+           <spacer name="verticalSpacer_3">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+
+          <!-- Action buttons -->
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_Actions">
+            <property name="spacing">
+             <number>10</number>
+            </property>
+            <item>
+             <widget class="QPushButton" name="btnSave">
+              <property name="text">
+               <string>Save Files to Disk</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btnPublish">
+              <property name="text">
+               <string>Compile &amp; Publish to Wallet</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+
+          <item>
+           <widget class="QLabel" name="labelStatus">
             <property name="text">
-             <string>Lock Until (Block/Timestamp):</string>
+             <string>Status: Ready</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
-           <widget class="QLineEdit" name="lineEditExpiryTimeLock">
+
+         </layout>
+        </widget>
+       </item>
+
+       <!-- RIGHT: YAML / JSON preview -->
+       <item>
+        <widget class="QFrame" name="right">
+         <layout class="QVBoxLayout" name="verticalLayout_Right">
+          <property name="leftMargin">
+           <number>20</number>
+          </property>
+          <property name="topMargin">
+           <number>20</number>
+          </property>
+          <property name="rightMargin">
+           <number>20</number>
+          </property>
+          <property name="bottomMargin">
+           <number>20</number>
+          </property>
+          <item>
+           <widget class="QLabel" name="labelTitleRight">
             <property name="text">
-             <string>150</string>
+             <string>Live Output Preview (YAML &amp; JSON)</string>
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="lblTLPubkey">
+          <item>
+           <widget class="QCheckBox" name="cbDeveloperMode">
             <property name="text">
-             <string>Owner Public Key (Hex):</string>
+             <string>Geliştirici Modu (YAML Düzenle)</string>
             </property>
            </widget>
           </item>
-          <item row="2" column="1">
-           <widget class="QLineEdit" name="lineEditPubkeyTimeLock"/>
+          <item>
+           <widget class="QLabel" name="lblYAML">
+            <property name="text">
+             <string>YAML Code Spec</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QTextEdit" name="textEditYAML">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="lblJSON">
+            <property name="text">
+             <string>JSON Code Spec (Target Payload)</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QTextEdit" name="textEditJSON">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="tabMultiSig">
-         <attribute name="title">
-          <string>Multi-Signature</string>
-         </attribute>
-         <layout class="QFormLayout" name="formLayout_MultiSig">
-          <property name="topMargin">
-           <number>15</number>
+       </item>
+
+      </layout>
+     </widget>
+     <!-- end tabBuild -->
+
+     <!-- ═══════════════════════════════════════
+          TAB 2 : RUN CONTRACT
+          ═══════════════════════════════════════ -->
+     <widget class="QWidget" name="tabRun">
+      <attribute name="title">
+       <string>Run Contract</string>
+      </attribute>
+      <layout class="QHBoxLayout" name="horizontalLayout_Run">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+
+       <!-- LEFT: selector + unlock params + run -->
+       <item>
+        <widget class="QFrame" name="runLeft">
+         <layout class="QVBoxLayout" name="verticalLayout_RunLeft">
+          <property name="leftMargin">
+           <number>20</number>
           </property>
-          <item row="0" column="0">
-           <widget class="QLabel" name="lblMSName">
+          <property name="topMargin">
+           <number>20</number>
+          </property>
+          <property name="rightMargin">
+           <number>20</number>
+          </property>
+          <property name="bottomMargin">
+           <number>20</number>
+          </property>
+
+          <item>
+           <widget class="QLabel" name="labelRunTitle">
             <property name="text">
-             <string>Contract Name:</string>
+             <string>Run Contract</string>
             </property>
            </widget>
           </item>
-          <item row="0" column="1">
-           <widget class="QLineEdit" name="lineEditNameMultiSig">
+
+          <item>
+           <widget class="QLabel" name="labelRunSubtitle">
             <property name="text">
-             <string>MultiSigContract</string>
+             <string>Select an unspent contract UTXO from your wallet and provide the unlock parameters to spend it.</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="lblMSN">
+
+          <item>
+           <spacer name="verticalSpacer_Run1">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>12</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+
+          <!-- Contract selector row -->
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_ContractSelect">
+            <property name="spacing">
+             <number>8</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="lblSelectContract">
+              <property name="text">
+               <string>Select Contract:</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>120</width>
+                <height>0</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="comboContracts">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="toolTip">
+               <string>Unspent contract UTXOs found in your wallet</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btnRefreshContracts">
+              <property name="text">
+               <string>Refresh</string>
+              </property>
+              <property name="toolTip">
+               <string>Scan wallet for unspent contract UTXOs</string>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>80</width>
+                <height>16777215</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+
+          <!-- Recipient address row -->
+          <item>
+           <spacer name="verticalSpacer_Run2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>10</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_RecipAddr">
+            <property name="spacing">
+             <number>8</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="lblRecipAddr">
+              <property name="text">
+               <string>Send Funds To:</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>120</width>
+                <height>0</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEditRecipAddr">
+              <property name="placeholderText">
+               <string>Recipient DSW address</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+
+          <!-- Separator label: Unlock Parameters -->
+          <item>
+           <spacer name="verticalSpacer_Run3">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>14</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+
+          <item>
+           <widget class="QLabel" name="lblUnlockParams">
             <property name="text">
-             <string>Total Keys (n):</string>
+             <string>Unlock Parameters</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
-           <widget class="QLineEdit" name="lineEditNMultiSig">
+
+          <item>
+           <widget class="QLabel" name="lblAutoSignStatus">
             <property name="text">
-             <string>3</string>
+             <string></string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="lblMSM">
+
+          <!-- Unlock param 1: signature / preimage -->
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_Param1">
+            <property name="spacing">
+             <number>8</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="lblParam1">
+              <property name="text">
+               <string>Signature (hex):</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>120</width>
+                <height>0</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEditParam1">
+              <property name="placeholderText">
+               <string>DER-encoded signature or preimage (hex)</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+
+          <!-- Unlock param 2: pubkey -->
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_Param2">
+            <property name="spacing">
+             <number>8</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="lblParam2">
+              <property name="text">
+               <string>Public Key (hex):</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>120</width>
+                <height>0</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEditParam2">
+              <property name="placeholderText">
+               <string>Compressed public key (hex, for sig-check contracts)</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+
+          <!-- Extra signatures for multisig -->
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_Param3">
+            <property name="spacing">
+             <number>8</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="lblParam3">
+              <property name="text">
+               <string>Extra Sigs (one per line):</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>120</width>
+                <height>0</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPlainTextEdit" name="plainTextExtraSigs">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>70</height>
+               </size>
+              </property>
+              <property name="placeholderText">
+               <string>Additional DER signatures for multi-sig (one hex per line)</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+
+          <item>
+           <spacer name="verticalSpacer_Run4">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+
+          <!-- Run button + status -->
+          <item>
+           <widget class="QPushButton" name="btnRunContract">
             <property name="text">
-             <string>Required Signatures (m):</string>
+             <string>Run Contract (Spend UTXO)</string>
             </property>
            </widget>
           </item>
-          <item row="2" column="1">
-           <widget class="QLineEdit" name="lineEditMMultiSig">
+
+          <item>
+           <widget class="QLabel" name="labelRunStatus">
             <property name="text">
-             <string>2</string>
+             <string>Status: Select a contract to begin.</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="lblMSKeys">
-            <property name="text">
-             <string>Public Keys (one per line):</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="1">
-           <widget class="QPlainTextEdit" name="plainTextEditKeysMultiSig"/>
-          </item>
+
          </layout>
         </widget>
-        <widget class="QWidget" name="tabHashLock">
-         <attribute name="title">
-          <string>Hash-Locked</string>
-         </attribute>
-         <layout class="QFormLayout" name="formLayout_HashLock">
-          <property name="topMargin">
-           <number>15</number>
+       </item>
+
+       <!-- RIGHT: decompiled contract info -->
+       <item>
+        <widget class="QFrame" name="runRight">
+         <layout class="QVBoxLayout" name="verticalLayout_RunRight">
+          <property name="leftMargin">
+           <number>20</number>
           </property>
-          <item row="0" column="0">
-           <widget class="QLabel" name="lblHLName">
+          <property name="topMargin">
+           <number>20</number>
+          </property>
+          <property name="rightMargin">
+           <number>20</number>
+          </property>
+          <property name="bottomMargin">
+           <number>20</number>
+          </property>
+
+          <item>
+           <widget class="QLabel" name="labelRunRightTitle">
             <property name="text">
-             <string>Contract Name:</string>
+             <string>Contract Details</string>
             </property>
            </widget>
           </item>
-          <item row="0" column="1">
-           <widget class="QLineEdit" name="lineEditNameHashLock">
+
+          <!-- UTXO info strip -->
+          <item>
+           <widget class="QFrame" name="frameUtxoInfo">
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <layout class="QFormLayout" name="formLayoutUtxo">
+             <property name="leftMargin">
+              <number>10</number>
+             </property>
+             <property name="topMargin">
+              <number>8</number>
+             </property>
+             <property name="rightMargin">
+              <number>10</number>
+             </property>
+             <property name="bottomMargin">
+              <number>8</number>
+             </property>
+             <item row="0" column="0">
+              <widget class="QLabel" name="lblUtxoTxId">
+               <property name="text">
+                <string>TxID:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QLabel" name="labelUtxoTxId">
+               <property name="text">
+                <string>—</string>
+               </property>
+               <property name="textInteractionFlags">
+                <set>Qt::TextSelectableByMouse</set>
+               </property>
+             </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="lblUtxoVout">
+               <property name="text">
+                <string>Output Index:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QLabel" name="labelUtxoVout">
+               <property name="text">
+                <string>—</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="lblUtxoAmount">
+               <property name="text">
+                <string>Locked Amount:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QLabel" name="labelUtxoAmount">
+               <property name="text">
+                <string>—</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="lblUtxoConfs">
+               <property name="text">
+                <string>Confirmations:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QLabel" name="labelUtxoConfs">
+               <property name="text">
+                <string>—</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+
+          <!-- Decompiled JSON -->
+          <item>
+           <widget class="QLabel" name="lblDecompiledTitle">
             <property name="text">
-             <string>HashLockContract</string>
+             <string>Decompiled Contract Spec (JSON)</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="lblHLHash">
-            <property name="text">
-             <string>Hash160 of Preimage (Hex):</string>
+          <item>
+           <widget class="QTextEdit" name="textEditDecompiled">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+            <property name="placeholderText">
+             <string>Select a contract above to see its decoded structure here.</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
-           <widget class="QLineEdit" name="lineEditHashHashLock"/>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="lblHLPubkey">
+
+          <!-- Raw scriptPubKey hex -->
+          <item>
+           <widget class="QLabel" name="lblRawScript">
             <property name="text">
-             <string>Recipient Pubkey (Hex):</string>
+             <string>Raw scriptPubKey (hex)</string>
             </property>
            </widget>
           </item>
-          <item row="2" column="1">
-           <widget class="QLineEdit" name="lineEditPubkeyHashLock"/>
+          <item>
+           <widget class="QLineEdit" name="lineEditRawScript">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+            <property name="placeholderText">
+             <string>—</string>
+            </property>
+           </widget>
           </item>
+
          </layout>
         </widget>
-       </widget>
-      </item>
-      <item>
-       <spacer name="verticalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Fixed</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>10</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_Amount">
-        <item>
-         <widget class="QLabel" name="labelAmount">
-          <property name="text">
-           <string>Amount to fund (DSW):</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="lineEditAmount">
-          <property name="text">
-           <string>10.0</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <spacer name="verticalSpacer_3">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Expanding</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>40</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <!-- Bottom Action buttons -->
-       <layout class="QHBoxLayout" name="horizontalLayout_Actions">
-        <property name="spacing">
-         <number>10</number>
-        </property>
-        <item>
-         <widget class="QPushButton" name="btnSave">
-          <property name="text">
-           <string>Save Files to Disk</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="btnPublish">
-          <property name="text">
-           <string>Compile &amp; Publish to Wallet</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <widget class="QLabel" name="labelStatus">
-        <property name="text">
-         <string>Status: Ready</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
+       </item>
+
+      </layout>
+     </widget>
+     <!-- end tabRun -->
+
     </widget>
-   </item>
-   <item>
-    <!-- Right Side Container -->
-    <widget class="QFrame" name="right">
-     <layout class="QVBoxLayout" name="verticalLayout_Right">
-      <property name="leftMargin">
-       <number>20</number>
-      </property>
-      <property name="rightMargin">
-       <number>20</number>
-      </property>
-      <property name="topMargin">
-       <number>20</number>
-      </property>
-      <property name="bottomMargin">
-       <number>20</number>
-      </property>
-      <item>
-       <widget class="QLabel" name="labelTitleRight">
-        <property name="text">
-         <string>Live Output Preview (YAML &amp; JSON)</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="lblYAML">
-        <property name="text">
-         <string>YAML Code Spec</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QTextEdit" name="textEditYAML">
-        <property name="readOnly">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="lblJSON">
-        <property name="text">
-         <string>JSON Code Spec (Target Payload)</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QTextEdit" name="textEditJSON">
-        <property name="readOnly">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
+    <!-- end tabWidgetMode -->
    </item>
   </layout>
  </widget>
