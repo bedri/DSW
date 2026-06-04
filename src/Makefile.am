@@ -248,6 +248,7 @@ libbitcoin_server_a_SOURCES = \
   script/sigcache.cpp \
   script/ismine.cpp \
   sporkdb.cpp \
+  script/scriptdb.cpp \
   timedata.cpp \
   torcontrol.cpp \
   txdb.cpp \
@@ -381,7 +382,6 @@ libbitcoin_common_a_SOURCES = \
   protocol.cpp \
   pubkey.cpp \
   scheduler.cpp \
-  script/scriptdb.cpp \
   script/interpreter.cpp \
   script/script.cpp \
   script/sign.cpp \

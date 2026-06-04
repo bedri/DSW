@@ -3,16 +3,19 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "script/scriptdb.h"
+#include <utility>
+
+CScriptDB* pScriptDB = nullptr;
 
 bool CScriptDB::WriteContract(const uint256& contractHash, const CScriptContract& contract)
 {
     // TODO: Maybe we should check script validity here before we write it to the database
-    return true; // Write(contractHash, contract);
+    return Write(std::make_pair('c', contractHash), contract);
 }
 
 bool CScriptDB::ReadContract(const uint256& contractHash, CScriptContract& contract)
 {
-    return true; // Read(contractHash, contract);
+    return Read(std::make_pair('c', contractHash), contract);
 }
 
 // TODO: Erasing Scripts from database can be dangerous so maybe it should just be marked as 'DISABLED' if this it's needed
@@ -23,5 +26,5 @@ bool CScriptDB::ReadContract(const uint256& contractHash, CScriptContract& contr
 
 bool CScriptDB::ContractExists(const uint256& contractHash)
 {
-    return true; // Exists(contractHash);
+    return Exists(std::make_pair('c', contractHash));
 }

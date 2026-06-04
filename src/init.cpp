@@ -42,6 +42,7 @@
 #include "spork.h"
 #include "sporkdb.h"
 #include "txdb.h"
+#include "script/scriptdb.h"
 #include "torcontrol.h"
 #include "guiinterface.h"
 #include "guiinterfaceutil.h"
@@ -260,6 +261,8 @@ void PrepareShutdown()
         pblocktree = NULL;
         delete pSporkDB;
         pSporkDB = NULL;
+        delete pScriptDB;
+        pScriptDB = NULL;
     }
 #ifdef ENABLE_WALLET
     if (pwalletMain)
@@ -1476,9 +1479,11 @@ bool AppInit2()
                 delete pcoinscatcher;
                 delete pblocktree;
                 delete pSporkDB;
+                delete pScriptDB;
 
                 //__Decenomy__ specific: spork DB's
                 pSporkDB = new CSporkDB(0, false, false);
+                pScriptDB = new CScriptDB(0, false, fReindex);
                 pblocktree = new CBlockTreeDB(nBlockTreeDBCache, false, fReindex);
                 pcoinsdbview = new CCoinsViewDB(nCoinDBCache, false, fReindex);
                 pcoinscatcher = new CCoinsViewErrorCatcher(pcoinsdbview);

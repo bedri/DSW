@@ -7,6 +7,7 @@
 
 #include "dbwrapper.h"
 #include "script/script.h"
+#include <utility>
 
 class CScriptContract;
 class CDBWrapper;
@@ -38,5 +39,7 @@ public:
     // bool EraseContract(const uint256& contractHash); // TODO: Erasing Scripts from database can be dangerous so maybe it should just be marked as 'DISABLED' if it's strictly needed
     bool ContractExists(const uint256& contractHash);
 };
+
+extern CScriptDB* pScriptDB;
 
 #endif // BITCOIN_SCRIPTDB_H

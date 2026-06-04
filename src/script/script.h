@@ -710,9 +710,6 @@ class CScriptDB;
 
 class CScriptContract : public CScript
 {
-private:
-    CScriptDB* pScriptDB;
-
 public:
     HashType hashType;
 
@@ -744,11 +741,11 @@ public:
         SetNull();
     }
 
-    inline CPubKey operator=(const CPubKey& rhs) { return CPubKey(rhs); }
-    inline time_t operator=(const time_t& rhs) { return time_t(rhs); }
-    inline CScript operator=(const CScript& rhs) { CScript script(rhs); }
-    inline uint256 operator=(const uint256& rhs) { return uint256(rhs); }
-    inline DataFile operator=(const DataFile& rhs) { return DataFile(rhs); }
+    inline CScriptContract& operator=(const CPubKey& rhs) { this->issuerPubKey = rhs; return *this; }
+    inline CScriptContract& operator=(const time_t& rhs) { this->publishTime = rhs; return *this; }
+    inline CScriptContract& operator=(const CScript& rhs) { CScript::operator=(rhs); return *this; }
+    inline CScriptContract& operator=(const uint256& rhs) { this->consensusScriptHash = rhs; return *this; }
+    inline CScriptContract& operator=(const DataFile& rhs) { this->dataFile = rhs; return *this; }
 
     ADD_SERIALIZE_METHODS;
 

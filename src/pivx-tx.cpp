@@ -667,3 +667,24 @@ int main(int argc, char* argv[])
     }
     return ret;
 }
+
+// Dummy stubs for CScriptDB/pScriptDB to satisfy linker for decenomy-tx which doesn't link libbitcoin_server.a
+#include "script/scriptdb.h"
+
+CScriptDB* pScriptDB = nullptr;
+
+bool CScriptDB::WriteContract(const uint256& contractHash, const CScriptContract& contract)
+{
+    return false;
+}
+
+bool CScriptDB::ReadContract(const uint256& contractHash, CScriptContract& contract)
+{
+    return false;
+}
+
+bool CScriptDB::ContractExists(const uint256& contractHash)
+{
+    return false;
+}
+
