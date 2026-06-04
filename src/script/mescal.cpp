@@ -246,7 +246,7 @@ UniValue CMescal::Decompile(const CScript& script, std::string& errorStr) {
     int condCount = 0;
 
     // Helper to peek/match script patterns
-    auto MatchPattern = [&](CScript::const_iterator temp_pc, const std::vector<opcodetype>& pattern, std::vector<std::vector<unsigned char>>& pushedData) -> bool {
+    auto MatchPattern = [&](CScript::const_iterator& temp_pc, const std::vector<opcodetype>& pattern, std::vector<std::vector<unsigned char>>& pushedData) -> bool {
         pushedData.clear();
         for (opcodetype expected : pattern) {
             opcodetype op;

@@ -6,6 +6,9 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "validationinterface.h"
+#include <boost/bind/bind.hpp>
+
+using namespace boost::placeholders;
 
 static CMainSignals g_signals;
 

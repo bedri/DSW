@@ -278,7 +278,6 @@ libbitcoin_wallet_a_SOURCES = \
   interface/wallet.cpp \
   addressbook.cpp \
   crypter.cpp \
-  key_io.cpp \
   masternode.cpp \
   masternode-payments.cpp \
   masternode-sync.cpp \
@@ -377,6 +376,7 @@ libbitcoin_common_a_SOURCES = \
   core_write.cpp \
   hash.cpp \
   key.cpp \
+  key_io.cpp \
   keystore.cpp \
   netaddress.cpp \
   netbase.cpp \
