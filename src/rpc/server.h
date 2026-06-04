@@ -223,6 +223,8 @@ extern UniValue getrawtransaction(const JSONRPCRequest& request); // in rpc/rawt
 extern UniValue createrawtransaction(const JSONRPCRequest& request);
 extern UniValue decoderawtransaction(const JSONRPCRequest& request);
 extern UniValue decodescript(const JSONRPCRequest& request);
+extern UniValue compilemescal(const JSONRPCRequest& request);
+extern UniValue decompilemescal(const JSONRPCRequest& request);
 extern UniValue fundrawtransaction(const JSONRPCRequest& request);
 extern UniValue signrawtransaction(const JSONRPCRequest& request);
 extern UniValue sendrawtransaction(const JSONRPCRequest& request);

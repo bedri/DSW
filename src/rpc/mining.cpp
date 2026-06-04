@@ -121,7 +121,6 @@ UniValue generate(const JSONRPCRequest& request)
         throw std::runtime_error(
             "generate numblocks\n"
             "\nMine blocks immediately (before the RPC call returns)\n"
-            "\nNote: this function can only be used on the regtest network\n"
 
             "\nArguments:\n"
             "1. numblocks    (numeric, required) How many blocks to generate.\n"
@@ -133,9 +132,6 @@ UniValue generate(const JSONRPCRequest& request)
             "\nGenerate 11 blocks\n"
             + HelpExampleCli("generate", "11")
         );
-
-    if (!Params().IsRegTestNet())
-        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "This method can only be used on regtest");
 
     const int nGenerate = request.params[0].get_int();
     int nHeightEnd = 0;

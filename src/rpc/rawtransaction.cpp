@@ -16,6 +16,7 @@
 #include "primitives/transaction.h"
 #include "rpc/server.h"
 #include "script/script.h"
+#include "script/mescal.h"
 #include "script/script_error.h"
 #include "script/sign.h"
 #include "script/standard.h"
@@ -408,6 +409,61 @@ UniValue decodescript(const JSONRPCRequest& request)
 
     r.push_back(Pair("p2sh", EncodeDestination(CScriptID(script))));
     return r;
+}
+
+UniValue compilemescal(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+            "compilemescal \"json\"\n"
+            "\nCompile a MESCAL JSON contract to script hex.\n"
+            "\nArguments:\n"
+            "1. \"json\"     (string, required) the MESCAL JSON contract string\n"
+            "\nResult:\n"
+            "\"hex\"          (string) hex encoded scriptPubKey\n"
+        );
+
+    RPCTypeCheck(request.params, boost::assign::list_of(UniValue::VSTR));
+
+    std::string jsonStr = request.params[0].get_str();
+    std::string errorStr;
+    CScript script = CMescal::Compile(jsonStr, errorStr);
+    if (!errorStr.empty()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "MESCAL Compilation failed: " + errorStr);
+    }
+
+    return HexStr(script.begin(), script.end());
+}
+
+UniValue decompilemescal(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+            "decompilemescal \"hex\"\n"
+            "\nDecompile a hex-encoded script back to MESCAL JSON.\n"
+            "\nArguments:\n"
+            "1. \"hex\"      (string, required) the hex encoded scriptPubKey\n"
+            "\nResult:\n"
+            "\"json\"         (object) MESCAL JSON representation\n"
+        );
+
+    RPCTypeCheck(request.params, boost::assign::list_of(UniValue::VSTR));
+
+    std::string hexStr = request.params[0].get_str();
+    if (!IsHex(hexStr)) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid hex string");
+    }
+
+    std::vector<unsigned char> scriptData = ParseHex(hexStr);
+    CScript script(scriptData.begin(), scriptData.end());
+
+    std::string errorStr;
+    UniValue result = CMescal::Decompile(script, errorStr);
+    if (!errorStr.empty()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "MESCAL Decompilation failed: " + errorStr);
+    }
+
+    return result;
 }
 
 /** Pushes a JSON object for script verification or signing errors to vErrorsRet. */

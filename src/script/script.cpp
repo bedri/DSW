@@ -11,6 +11,7 @@
 #include "utilstrencodings.h"
 #include "uint256.h"
 #include "hash.h"
+#include "util.h"
 
 
 const char* GetOpName(opcodetype opcode)
@@ -302,7 +303,7 @@ bool CScriptContract::RunContractScript()
 bool CScriptContract::SaveContract()
 {
     uint256 hash = this->GetContractHash(); // Default 'HashType hashType' is TYPE_X11KVS
-
+    LogPrintf("CScriptContract::SaveContract(): contract hash = %s\n", hash.ToString());
     pScriptDB->WriteContract(hash, *this);
     return true;
 }

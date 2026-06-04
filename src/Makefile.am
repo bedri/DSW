@@ -161,6 +161,7 @@ BITCOIN_CORE_H = \
   script/interpreter.h \
   script/keyorigin.h \
   script/script.h \
+  script/mescal.h \
   script/sigcache.h \
   script/sign.h \
   script/standard.h \
@@ -384,6 +385,7 @@ libbitcoin_common_a_SOURCES = \
   scheduler.cpp \
   script/interpreter.cpp \
   script/script.cpp \
+  script/mescal.cpp \
   script/sign.cpp \
   script/standard.cpp \
   script/script_error.cpp \

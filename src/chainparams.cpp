@@ -172,7 +172,7 @@ public:
         consensus.nStakeMinDepthV2 = 600;
         consensus.nTargetTimespan = 40 * 60;
         consensus.nTargetTimespanV2 = 30 * 60;
-        consensus.nTargetSpacing = 1 * 60;
+        consensus.nTargetSpacing = 10;
         consensus.nTimeSlotLength = 15;
 
         // spork keys
@@ -278,7 +278,7 @@ public:
         consensus.nStakeMinDepthV2 = 200;
         consensus.nTargetTimespan = 40 * 60;
         consensus.nTargetTimespanV2 = 30 * 60;
-        consensus.nTargetSpacing = 1 * 60;
+        consensus.nTargetSpacing = 10;
         consensus.nTimeSlotLength = 15;
 
         // spork keys
@@ -372,7 +372,7 @@ public:
         consensus.nStakeMinDepth = 2;
         consensus.nTargetTimespan = 40 * 60;
         consensus.nTargetTimespanV2 = 30 * 60;
-        consensus.nTargetSpacing = 1 * 60;
+        consensus.nTargetSpacing = 10;
         consensus.nTimeSlotLength = 15;
 
         /* Spork Key for RegTest:
