@@ -104,6 +104,42 @@ QPushButton[cssClass="img-nav-logo"] {
   color: #c226d6;
 }
 
+*[cssClass="btn-nav-smartcontract"] {
+  qproperty-icon: url("://ic-nav-smartcontract") off, url("://ic-nav-smartcontract-active") on;
+  qproperty-iconSize: 24px 40px;
+  background-color: transparent;
+  font-size: 12px;
+  color: #ffffff;
+}
+
+*[cssClass="btn-nav-smartcontract"]:checked {
+  background-color: #4b1452;
+  font-size: 12px;
+  color: #84ccfc;
+}
+
+*[cssClass="btn-nav-smartcontract"]:checked:hover {
+  background-color: #4b1452;
+  font-size: 12px;
+  color: #c226d6;
+}
+
+*[cssClass="btn-nav-smartcontract"]:hover {
+  qproperty-icon: url("://ic-nav-smartcontract-hover");
+  qproperty-iconSize: 24px 40px;
+  background-color: #4b1452;
+  font-size: 12px;
+  color: #c226d6;
+}
+
+*[cssClass="btn-nav-smartcontract-active"] {
+  qproperty-icon: url("://ic-nav-smartcontract-active");
+  qproperty-iconSize: 24px 40px;
+  background-color: #4b1452;
+  font-size: 12px;
+  color: #c226d6;
+}
+
 /*****
 *masternode conf & coin conf file edit topbar buttons.
 *****/

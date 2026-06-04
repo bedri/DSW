@@ -371,6 +371,9 @@ RES_ICONS = \
   qt/pivx/res/img/ic-address-send.svg \
   qt/pivx/res/img/ic-close-white.svg \
   qt/pivx/res/img/ic-nav-settings.svg \
+  qt/pivx/res/img/ic-nav-smartcontract-active.svg \
+  qt/pivx/res/img/ic-nav-smartcontract-hover.svg \
+  qt/pivx/res/img/ic-nav-smartcontract.svg \
   qt/pivx/res/img/img-empty-peers.svg \
   qt/pivx/res/img/img-empty-privacy.svg \
   qt/pivx/res/img/img-empty-privacy-dark.svg \

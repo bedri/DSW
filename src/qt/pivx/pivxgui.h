@@ -64,6 +64,7 @@ public Q_SLOTS:
     void goToDashboard();
     void goToSend();
     void goToReceive();
+    void goToSmartContract();
     void goToAddresses();
     void goToMasterNodes();
     void goToSettings();
@@ -133,6 +134,7 @@ private:
     AddressesWidget *addressesWidget = nullptr;
     MasterNodesWidget *masterNodesWidget = nullptr;
     SettingsWidget* settingsWidget = nullptr;
+    QWidget *smartContractWidget = nullptr;
 
     SnackBar *snackBar = nullptr;
 

@@ -127,11 +127,13 @@ PIVXGUI::PIVXGUI(const NetworkStyle* networkStyle, QWidget* parent) :
         addressesWidget = new AddressesWidget(this);
         masterNodesWidget = new MasterNodesWidget(this);
         settingsWidget = new SettingsWidget(this);
+        smartContractWidget = new QWidget(this);
 
         // Add to parent
         stackedContainer->addWidget(dashboard);
         stackedContainer->addWidget(sendWidget);
         stackedContainer->addWidget(receiveWidget);
+        stackedContainer->addWidget(smartContractWidget);
         stackedContainer->addWidget(addressesWidget);
         stackedContainer->addWidget(masterNodesWidget);
         stackedContainer->addWidget(settingsWidget);
@@ -508,6 +510,11 @@ void PIVXGUI::goToDebugConsole()
 void PIVXGUI::goToReceive()
 {
     showTop(receiveWidget);
+}
+
+void PIVXGUI::goToSmartContract()
+{
+    showTop(smartContractWidget);
 }
 
 void PIVXGUI::openNetworkMonitor()

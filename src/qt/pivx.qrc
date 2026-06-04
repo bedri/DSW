@@ -129,6 +129,9 @@
         <file alias="ic-nav-settings-active">pivx/res/img/ic-nav-settings-active.svg</file>
         <file alias="ic-nav-settings-hover">pivx/res/img/ic-nav-settings-hover.svg</file>
         <file alias="ic-nav-settings">pivx/res/img/ic-nav-settings.svg</file>
+        <file alias="ic-nav-smartcontract-active">pivx/res/img/ic-nav-smartcontract-active.svg</file>
+        <file alias="ic-nav-smartcontract-hover">pivx/res/img/ic-nav-smartcontract-hover.svg</file>
+        <file alias="ic-nav-smartcontract">pivx/res/img/ic-nav-smartcontract.svg</file>
         <file alias="ic-radio-liliac-on">pivx/res/img/ic-radio-liliac-on.svg</file>
         <file alias="ic-receive-off">pivx/res/img/ic-receive-off.svg</file>
         <file alias="ic-receive-on">pivx/res/img/ic-receive-on.svg</file>

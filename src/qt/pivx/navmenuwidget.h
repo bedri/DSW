@@ -36,6 +36,7 @@ private Q_SLOTS:
     void onMasterNodesClicked();
     void onSettingsClicked();
     void onReceiveClicked();
+    void onSmartContractClicked();
     void updateButtonStyles();
 private:
     Ui::NavMenuWidget *ui;

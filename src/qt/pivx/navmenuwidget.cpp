@@ -31,13 +31,15 @@ NavMenuWidget::NavMenuWidget(PIVXGUI *mainWindow, QWidget *parent) :
     ui->btnSend->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     ui->btnReceive->setProperty("name", "receive");
     ui->btnReceive->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    ui->btnSmartContract->setProperty("name", "smartcontract");
+    ui->btnSmartContract->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     ui->btnAddress->setProperty("name", "address");
     ui->btnAddress->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     ui->btnMaster->setProperty("name", "master");
     ui->btnMaster->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     ui->btnSettings->setProperty("name", "settings");
     ui->btnSettings->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
-    btns = {ui->btnDashboard, ui->btnSend, ui->btnReceive, ui->btnAddress, ui->btnMaster, ui->btnSettings};
+    btns = {ui->btnDashboard, ui->btnSend, ui->btnReceive, ui->btnSmartContract, ui->btnAddress, ui->btnMaster, ui->btnSettings};
     onNavSelected(ui->btnDashboard, true);
 
     ui->scrollAreaNav->setWidgetResizable(true);
@@ -67,10 +69,12 @@ void NavMenuWidget::connectActions() {
     connect(ui->btnMaster, &QPushButton::clicked, this, &NavMenuWidget::onMasterNodesClicked);
     connect(ui->btnSettings, &QPushButton::clicked, this, &NavMenuWidget::onSettingsClicked);
     connect(ui->btnReceive, &QPushButton::clicked, this, &NavMenuWidget::onReceiveClicked);
+    connect(ui->btnSmartContract, &QPushButton::clicked, this, &NavMenuWidget::onSmartContractClicked);
 
     ui->btnDashboard->setShortcut(QKeySequence(SHORT_KEY + Qt::Key_1));
     ui->btnSend->setShortcut(QKeySequence(SHORT_KEY + Qt::Key_2));
     ui->btnReceive->setShortcut(QKeySequence(SHORT_KEY + Qt::Key_3));
+    ui->btnSmartContract->setShortcut(QKeySequence(SHORT_KEY + Qt::Key_6));
     ui->btnAddress->setShortcut(QKeySequence(SHORT_KEY + Qt::Key_4));
     ui->btnMaster->setShortcut(QKeySequence(SHORT_KEY + Qt::Key_5));
     ui->btnSettings->setShortcut(QKeySequence(SHORT_KEY + Qt::Key_7));
@@ -106,6 +110,11 @@ void NavMenuWidget::onReceiveClicked(){
     onNavSelected(ui->btnReceive);
 }
 
+void NavMenuWidget::onSmartContractClicked(){
+    window->goToSmartContract();
+    onNavSelected(ui->btnSmartContract);
+}
+
 void NavMenuWidget::onNavSelected(QWidget* active, bool startup) {
     QString start = "btn-nav-";
     Q_FOREACH (QWidget* w, btns) {
@@ -136,7 +145,8 @@ void NavMenuWidget::updateButtonStyles(){
          ui->btnAddress,
          ui->btnMaster,
          ui->btnSettings,
-         ui->btnReceive
+         ui->btnReceive,
+         ui->btnSmartContract
     });
 }
 
