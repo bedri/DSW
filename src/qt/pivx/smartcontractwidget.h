@@ -7,6 +7,7 @@
 
 #include "qt/pivx/pwidget.h"
 #include <QWidget>
+#include <univalue.h>
 
 namespace Ui {
 class SmartContractWidget;

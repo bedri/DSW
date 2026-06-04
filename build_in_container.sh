@@ -7,7 +7,7 @@ echo "Starting build inside Ubuntu container..."
 echo "Compiling dependencies..."
 cd depends
 chmod +x config.sub config.guess
-make -j24 HOST=x86_64-pc-linux-gnu
+make -j30 HOST=x86_64-pc-linux-gnu
 cd ..
 
 # Compile DSW
