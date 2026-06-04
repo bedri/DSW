@@ -91,6 +91,7 @@ void VisualDesignerDialog::setupLayout()
     listNodes->addItem(tr("Signature Check (check-signature-verification)"));
     listNodes->addItem(tr("Multi-Signature (multi-signature)"));
     listNodes->addItem(tr("Hash-Locked (hash160)"));
+    listNodes->addItem(tr("IF-Condition (if-condition)"));
     
     rightLayout->addWidget(listNodes);
     
@@ -128,12 +129,23 @@ void VisualDesignerDialog::rebuildScene()
         QString qName = QString::fromStdString(role);
         QString qDetails = "";
         
-        const UniValue& inputs = act["inputs"];
-        if (inputs.isArray() && !inputs.empty()) {
-            for (unsigned int j = 0; j < inputs.size(); j++) {
-                qDetails += QString("%1: %2\n")
-                    .arg(QString::fromStdString(inputs[j]["name"].get_str()))
-                    .arg(QString::fromStdString(inputs[j]["value"].getValStr()));
+        if (role == "if-condition") {
+            qName = "IF-Condition";
+            UniValue expr = act["expression"];
+            qDetails = QString("IF [%1]\nTHEN [%2]")
+                .arg(QString::fromStdString(expr["role"].get_str()))
+                .arg(QString::fromStdString(act["true_action"]["role"].get_str()));
+            if (act.exists("false_action") && act["false_action"].isObject()) {
+                qDetails += QString("\nELSE [%1]").arg(QString::fromStdString(act["false_action"]["role"].get_str()));
+            }
+        } else {
+            const UniValue& inputs = act["inputs"];
+            if (inputs.isArray() && !inputs.empty()) {
+                for (unsigned int j = 0; j < inputs.size(); j++) {
+                    qDetails += QString("%1: %2\n")
+                        .arg(QString::fromStdString(inputs[j]["name"].get_str()))
+                        .arg(QString::fromStdString(inputs[j]["value"].getValStr()));
+                }
             }
         }
         
@@ -238,6 +250,146 @@ void VisualDesignerDialog::onAddNodeClicked()
         
         currentActions.push_back(sigNode);
         qDebug() << "onAddNodeClicked - Added Hash-Locked & Sig-Check nodes. currentActions size:" << currentActions.size();
+        rebuildScene();
+        return;
+    }
+    
+    else if (row == 4) { // IF-Condition
+        bool ok;
+        QStringList exprTypes;
+        exprTypes << tr("Signature Check (check-signature-verification)")
+                  << tr("Hash-Locked (hash160)");
+        QString exprType = QInputDialog::getItem(this, tr("IF-Condition - Expression"), tr("Select condition check type:"), exprTypes, 0, false, &ok);
+        if (!ok || exprType.isEmpty()) return;
+
+        UniValue exprAct(UniValue::VOBJ);
+        UniValue exprInputs(UniValue::VARR);
+        if (exprType.contains("check-signature-verification")) {
+            QString pubkey = QInputDialog::getText(this, tr("Expression - Signature Check"), tr("Owner Public Key (Hex):"), QLineEdit::Normal, "", &ok);
+            if (!ok || pubkey.isEmpty()) return;
+            exprAct.pushKV("role", "check-signature-verification");
+            UniValue inp(UniValue::VOBJ); inp.pushKV("name", "Pubkey"); inp.pushKV("type", "pubkey"); inp.pushKV("value", pubkey.trimmed().toStdString());
+            exprInputs.push_back(inp);
+        } else {
+            bool ok1, ok2;
+            QString hashHex = QInputDialog::getText(this, tr("Expression - Hash-Locked"), tr("Hash160 of Preimage (Hex):"), QLineEdit::Normal, "", &ok1);
+            if (!ok1 || hashHex.isEmpty()) return;
+            QString pubkey = QInputDialog::getText(this, tr("Expression - Hash-Locked"), tr("Recipient Pubkey (Hex):"), QLineEdit::Normal, "", &ok2);
+            if (!ok2 || pubkey.isEmpty()) return;
+            exprAct.pushKV("role", "hash160");
+            UniValue inp(UniValue::VOBJ); inp.pushKV("name", "Hash160"); inp.pushKV("type", "string-or-number"); inp.pushKV("value", hashHex.trimmed().toStdString());
+            exprInputs.push_back(inp);
+        }
+        exprAct.pushKV("inputs", exprInputs);
+
+        QStringList actionTypes;
+        actionTypes << tr("Time-Locked (lock-time)")
+                    << tr("Signature Check (check-signature-verification)")
+                    << tr("Multi-Signature (multi-signature)")
+                    << tr("Hash-Locked (hash160)");
+        QString trueType = QInputDialog::getItem(this, tr("IF-Condition - True Branch"), tr("Select action when TRUE:"), actionTypes, 0, false, &ok);
+        if (!ok || trueType.isEmpty()) return;
+
+        UniValue trueAct(UniValue::VOBJ);
+        UniValue trueInputs(UniValue::VARR);
+        if (trueType.contains("lock-time")) {
+            int64_t lockTime = QInputDialog::getInt(this, tr("True Branch - Time-Locked"), tr("Lock Until (Block or Timestamp):"), 150, 0, 2000000000, 1, &ok);
+            if (!ok) return;
+            trueAct.pushKV("role", "lock-time");
+            UniValue inp(UniValue::VOBJ); inp.pushKV("name", "Lock-Until"); inp.pushKV("type", "timestamp-or-block-height"); inp.pushKV("value", lockTime); trueInputs.push_back(inp);
+        } else if (trueType.contains("check-signature-verification")) {
+            QString pubkey = QInputDialog::getText(this, tr("True Branch - Signature Check"), tr("Owner Public Key (Hex):"), QLineEdit::Normal, "", &ok);
+            if (!ok || pubkey.isEmpty()) return;
+            trueAct.pushKV("role", "check-signature-verification");
+            UniValue inp(UniValue::VOBJ); inp.pushKV("name", "Pubkey"); inp.pushKV("type", "pubkey"); inp.pushKV("value", pubkey.trimmed().toStdString()); trueInputs.push_back(inp);
+        } else if (trueType.contains("multi-signature")) {
+            bool ok1, ok2, ok3;
+            int m = QInputDialog::getInt(this, tr("True Branch - Multi-Signature"), tr("Required Signatures (m):"), 2, 1, 20, 1, &ok1);
+            if (!ok1) return;
+            int n = QInputDialog::getInt(this, tr("True Branch - Multi-Signature"), tr("Total Keys (n):"), 3, 1, 20, 1, &ok2);
+            if (!ok2) return;
+            QString keysStr = QInputDialog::getText(this, tr("True Branch - Multi-Signature"), tr("Public Keys (space-separated):"), QLineEdit::Normal, "", &ok3);
+            if (!ok3 || keysStr.isEmpty()) return;
+            trueAct.pushKV("role", "multi-signature");
+            UniValue inpM(UniValue::VOBJ); inpM.pushKV("name", "m"); inpM.pushKV("type", "number"); inpM.pushKV("value", m); trueInputs.push_back(inpM);
+            UniValue inpN(UniValue::VOBJ); inpN.pushKV("name", "n"); inpN.pushKV("type", "number"); inpN.pushKV("value", n); trueInputs.push_back(inpN);
+            UniValue keysArray(UniValue::VARR);
+            QStringList keysList = keysStr.split(' ', QString::SkipEmptyParts);
+            for (const QString& key : keysList) keysArray.push_back(key.trimmed().toStdString());
+            UniValue inpSigs(UniValue::VOBJ); inpSigs.pushKV("name", "Signatures"); inpSigs.pushKV("type", "array"); inpSigs.pushKV("value", keysArray); trueInputs.push_back(inpSigs);
+        } else if (trueType.contains("hash160")) {
+            bool ok1, ok2;
+            QString hashHex = QInputDialog::getText(this, tr("True Branch - Hash-Locked"), tr("Hash160 of Preimage (Hex):"), QLineEdit::Normal, "", &ok1);
+            if (!ok1 || hashHex.isEmpty()) return;
+            QString pubkey = QInputDialog::getText(this, tr("True Branch - Hash-Locked"), tr("Recipient Pubkey (Hex):"), QLineEdit::Normal, "", &ok2);
+            if (!ok2 || pubkey.isEmpty()) return;
+            trueAct.pushKV("role", "hash160");
+            UniValue inpHash(UniValue::VOBJ); inpHash.pushKV("name", "Hash160"); inpHash.pushKV("type", "string-or-number"); inpHash.pushKV("value", hashHex.trimmed().toStdString()); trueInputs.push_back(inpHash);
+        }
+        trueAct.pushKV("inputs", trueInputs);
+
+        QStringList falseActionTypes;
+        falseActionTypes << tr("None")
+                         << tr("Time-Locked (lock-time)")
+                         << tr("Signature Check (check-signature-verification)")
+                         << tr("Multi-Signature (multi-signature)")
+                         << tr("Hash-Locked (hash160)");
+        QString falseType = QInputDialog::getItem(this, tr("IF-Condition - False Branch"), tr("Select action when FALSE:"), falseActionTypes, 0, false, &ok);
+        if (!ok || falseType.isEmpty()) return;
+
+        UniValue falseAct(UniValue::VOBJ);
+        UniValue falseInputs(UniValue::VARR);
+        bool hasFalse = false;
+        if (falseType.contains("lock-time")) {
+            int64_t lockTime = QInputDialog::getInt(this, tr("False Branch - Time-Locked"), tr("Lock Until (Block or Timestamp):"), 150, 0, 2000000000, 1, &ok);
+            if (!ok) return;
+            falseAct.pushKV("role", "lock-time");
+            UniValue inp(UniValue::VOBJ); inp.pushKV("name", "Lock-Until"); inp.pushKV("type", "timestamp-or-block-height"); inp.pushKV("value", lockTime); falseInputs.push_back(inp);
+            hasFalse = true;
+        } else if (falseType.contains("check-signature-verification")) {
+            QString pubkey = QInputDialog::getText(this, tr("False Branch - Signature Check"), tr("Owner Public Key (Hex):"), QLineEdit::Normal, "", &ok);
+            if (!ok || pubkey.isEmpty()) return;
+            falseAct.pushKV("role", "check-signature-verification");
+            UniValue inp(UniValue::VOBJ); inp.pushKV("name", "Pubkey"); inp.pushKV("type", "pubkey"); inp.pushKV("value", pubkey.trimmed().toStdString()); falseInputs.push_back(inp);
+            hasFalse = true;
+        } else if (falseType.contains("multi-signature")) {
+            bool ok1, ok2, ok3;
+            int m = QInputDialog::getInt(this, tr("False Branch - Multi-Signature"), tr("Required Signatures (m):"), 2, 1, 20, 1, &ok1);
+            if (!ok1) return;
+            int n = QInputDialog::getInt(this, tr("False Branch - Multi-Signature"), tr("Total Keys (n):"), 3, 1, 20, 1, &ok2);
+            if (!ok2) return;
+            QString keysStr = QInputDialog::getText(this, tr("False Branch - Multi-Signature"), tr("Public Keys (space-separated):"), QLineEdit::Normal, "", &ok3);
+            if (!ok3 || keysStr.isEmpty()) return;
+            falseAct.pushKV("role", "multi-signature");
+            UniValue inpM(UniValue::VOBJ); inpM.pushKV("name", "m"); inpM.pushKV("type", "number"); inpM.pushKV("value", m); falseInputs.push_back(inpM);
+            UniValue inpN(UniValue::VOBJ); inpN.pushKV("name", "n"); inpN.pushKV("type", "number"); inpN.pushKV("value", n); falseInputs.push_back(inpN);
+            UniValue keysArray(UniValue::VARR);
+            QStringList keysList = keysStr.split(' ', QString::SkipEmptyParts);
+            for (const QString& key : keysList) keysArray.push_back(key.trimmed().toStdString());
+            UniValue inpSigs(UniValue::VOBJ); inpSigs.pushKV("name", "Signatures"); inpSigs.pushKV("type", "array"); inpSigs.pushKV("value", keysArray); falseInputs.push_back(inpSigs);
+            hasFalse = true;
+        } else if (falseType.contains("hash160")) {
+            bool ok1, ok2;
+            QString hashHex = QInputDialog::getText(this, tr("False Branch - Hash-Locked"), tr("Hash160 of Preimage (Hex):"), QLineEdit::Normal, "", &ok1);
+            if (!ok1 || hashHex.isEmpty()) return;
+            QString pubkey = QInputDialog::getText(this, tr("False Branch - Hash-Locked"), tr("Recipient Pubkey (Hex):"), QLineEdit::Normal, "", &ok2);
+            if (!ok2 || pubkey.isEmpty()) return;
+            falseAct.pushKV("role", "hash160");
+            UniValue inpHash(UniValue::VOBJ); inpHash.pushKV("name", "Hash160"); inpHash.pushKV("type", "string-or-number"); inpHash.pushKV("value", hashHex.trimmed().toStdString()); falseInputs.push_back(inpHash);
+            hasFalse = true;
+        }
+
+        UniValue condNode(UniValue::VOBJ);
+        condNode.pushKV("role", "if-condition");
+        condNode.pushKV("expression", exprAct);
+        condNode.pushKV("true_action", trueAct);
+        if (hasFalse) {
+            falseAct.pushKV("inputs", falseInputs);
+            condNode.pushKV("false_action", falseAct);
+        }
+
+        currentActions.push_back(condNode);
+        qDebug() << "onAddNodeClicked - Added IF-Condition node. currentActions size:" << currentActions.size();
         rebuildScene();
         return;
     }
