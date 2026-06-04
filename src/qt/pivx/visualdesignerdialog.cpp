@@ -10,10 +10,12 @@
 #include <QPainter>
 #include <QGraphicsSimpleTextItem>
 #include <QGraphicsLineItem>
+#include <QDebug>
 
 DesignerNodeItem::DesignerNodeItem(const QString& name, const QString& details, const UniValue& data, QGraphicsItem* parent)
-    : QGraphicsRectItem(0, 0, 200, 70, parent), name(name), details(details), nodeData(data)
+    : QGraphicsRectItem(parent), name(name), details(details), nodeData(data)
 {
+    setRect(0, 0, 200, 70);
     setFlag(QGraphicsItem::ItemIsMovable);
     setFlag(QGraphicsItem::ItemIsSelectable);
 }
@@ -113,6 +115,7 @@ void VisualDesignerDialog::setupLayout()
 
 void VisualDesignerDialog::rebuildScene()
 {
+    qDebug() << "VisualDesignerDialog::rebuildScene() - currentActions size:" << currentActions.size();
     scene->clear();
     nodeItems.clear();
     
@@ -218,6 +221,7 @@ void VisualDesignerDialog::onAddNodeClicked()
         inpHash.pushKV("type", "string-or-number");
         inpHash.pushKV("value", hashHex.trimmed().toStdString());
         inputs.push_back(inpHash);
+        node.pushKV("inputs", inputs);
         
         currentActions.push_back(node);
         
@@ -233,12 +237,14 @@ void VisualDesignerDialog::onAddNodeClicked()
         sigNode.pushKV("inputs", sigInputs);
         
         currentActions.push_back(sigNode);
+        qDebug() << "onAddNodeClicked - Added Hash-Locked & Sig-Check nodes. currentActions size:" << currentActions.size();
         rebuildScene();
         return;
     }
     
     node.pushKV("inputs", inputs);
     currentActions.push_back(node);
+    qDebug() << "onAddNodeClicked - Added node. currentActions size:" << currentActions.size();
     
     rebuildScene();
 }

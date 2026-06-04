@@ -17,7 +17,7 @@
 class DesignerNodeItem : public QGraphicsRectItem {
 public:
     DesignerNodeItem(const QString& name, const QString& details, const UniValue& data, QGraphicsItem* parent = nullptr);
-    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget) override;
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
     
     QString name;
     QString details;
