@@ -57,7 +57,7 @@ VisualDesignerDialog::VisualDesignerDialog(const UniValue& initialActions, QWidg
     : QDialog(parent), currentActions(initialActions)
 {
     setWindowTitle(tr("Visual Smart Contract Designer"));
-    resize(850, 550);
+    resize(1000, 700);
     
     setupLayout();
     rebuildScene();
@@ -80,6 +80,7 @@ void VisualDesignerDialog::setupLayout()
     view = new QGraphicsView(scene, this);
     view->setRenderHint(QPainter::Antialiasing);
     view->setDragMode(QGraphicsView::RubberBandDrag);
+    view->setAlignment(Qt::AlignLeft | Qt::AlignTop);
     
     mainLayout->addWidget(view, 3);
     
