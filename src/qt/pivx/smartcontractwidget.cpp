@@ -83,7 +83,7 @@ SmartContractWidget::SmartContractWidget(PIVXGUI* parent) :
     setCssProperty({ui->lblTLName, ui->lblTLExpiry, ui->lblTLPubkey,
                     ui->lblMSName, ui->lblMSN, ui->lblMSM, ui->lblMSKeys,
                     ui->lblHLName, ui->lblHLHash, ui->lblHLPubkey,
-                    ui->labelAmount}, "text-title");
+                    ui->labelAmount, ui->lblSelectTemplate}, "text-title");
 
     for (QLineEdit* le : {ui->lineEditNameTimeLock, ui->lineEditExpiryTimeLock, ui->lineEditPubkeyTimeLock,
                            ui->lineEditNameMultiSig, ui->lineEditNMultiSig, ui->lineEditMMultiSig,
@@ -94,6 +94,21 @@ SmartContractWidget::SmartContractWidget(PIVXGUI* parent) :
 
     setCssBtnSecondary(ui->btnSave);
     setCssBtnPrimary(ui->btnPublish);
+
+    initComboBox(ui->comboTemplates);
+
+    ui->comboTemplates->addItem(tr("Custom / Blank"));
+    ui->comboTemplates->addItem(tr("Time-Locked Deposit"));
+    ui->comboTemplates->addItem(tr("Escrow Multi-Signature (2-of-3)"));
+    ui->comboTemplates->addItem(tr("Hash-Locked Claim"));
+    ui->comboTemplates->addItem(tr("Dead Man's Switch (Inheritance)"));
+    ui->comboTemplates->addItem(tr("Dual-Signature Escrow with Mediator"));
+    ui->comboTemplates->addItem(tr("2-Factor Authentication (2FA) Wallet"));
+    ui->comboTemplates->addItem(tr("Hash Time-Locked Swap (HTLC)"));
+    ui->comboTemplates->addItem(tr("Multi-Path Security Recovery"));
+
+    connect(ui->comboTemplates, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &SmartContractWidget::onTemplateSelected);
 
     // Live preview connections
     connect(ui->lineEditNameTimeLock,   &QLineEdit::textChanged, this, &SmartContractWidget::generateContract);
@@ -448,6 +463,214 @@ void SmartContractWidget::onPublishClicked()
     std::string txid = res.hashTx.GetHex();
     ui->labelStatus->setText(tr("Status: Published! TxID: %1").arg(QString::fromStdString(txid)));
     inform(tr("Contract published successfully!\nTxID: %1").arg(QString::fromStdString(txid)));
+}
+
+void SmartContractWidget::onTemplateSelected(int index)
+{
+    if (index == 0) {
+        // Custom / Blank
+        return;
+    }
+
+    if (index == 1) { // Time-Locked Deposit
+        ui->tabWidget->setCurrentIndex(0);
+        ui->lineEditNameTimeLock->setText("TimeLockedDeposit");
+        ui->lineEditExpiryTimeLock->setText("1780718400");
+        generateContract();
+    }
+    else if (index == 2) { // Escrow Multi-Signature (2-of-3)
+        ui->tabWidget->setCurrentIndex(1);
+        ui->lineEditNameMultiSig->setText("Escrow2of3");
+        ui->lineEditNMultiSig->setText("3");
+        ui->lineEditMMultiSig->setText("2");
+        QStringList sampleKeys;
+        sampleKeys << "02ee1fb80068f574b0d110009f110f703161cd358889a7bc48c613aa898136660f"
+                   << "03ee1fb80068f574b0d110009f110f703161cd358889a7bc48c613aa898136660a"
+                   << "02cd98ef1234a567bcde0123ef5678cd12345678ab12345678cd12345678ef1234";
+        ui->plainTextEditKeysMultiSig->setPlainText(sampleKeys.join("\n"));
+        generateContract();
+    }
+    else if (index == 3) { // Hash-Locked Claim
+        ui->tabWidget->setCurrentIndex(2);
+        ui->lineEditNameHashLock->setText("HashLockedClaim");
+        ui->lineEditHashHashLock->setText("b5a9c9f285d893ce71ab9de8f5c09d765ee982ba");
+        generateContract();
+    }
+    else {
+        // Custom Builder advanced templates
+        ui->tabWidget->setCurrentIndex(3);
+        
+        customActions.clear();
+        customActions.setArray();
+        
+        if (index == 4) { // Dead Man's Switch (Inheritance)
+            UniValue condNode(UniValue::VOBJ);
+            condNode.pushKV("role", "if-condition");
+
+            UniValue expr(UniValue::VOBJ);
+            expr.pushKV("role", "check-signature-verification");
+            UniValue exprInputs(UniValue::VARR);
+            UniValue exprInp(UniValue::VOBJ);
+            exprInp.pushKV("name", "Pubkey");
+            exprInp.pushKV("type", "pubkey");
+            exprInp.pushKV("value", "02ee1fb80068f574b0d110009f110f703161cd358889a7bc48c613aa898136660f"); // Heir
+            exprInputs.push_back(exprInp);
+            expr.pushKV("inputs", exprInputs);
+            condNode.pushKV("expression", expr);
+
+            UniValue trueAct(UniValue::VOBJ);
+            trueAct.pushKV("role", "lock-time");
+            UniValue trueInputs(UniValue::VARR);
+            UniValue trueInp(UniValue::VOBJ);
+            trueInp.pushKV("name", "Lock-Until");
+            trueInp.pushKV("type", "timestamp-or-block-height");
+            trueInp.pushKV("value", (int64_t)1780718400); // Expiry
+            trueInputs.push_back(trueInp);
+            trueAct.pushKV("inputs", trueInputs);
+            condNode.pushKV("true_action", trueAct);
+
+            UniValue falseAct(UniValue::VOBJ);
+            falseAct.pushKV("role", "check-signature-verification");
+            UniValue falseInputs(UniValue::VARR);
+            UniValue falseInp(UniValue::VOBJ);
+            falseInp.pushKV("name", "Pubkey");
+            falseInp.pushKV("type", "pubkey");
+            falseInp.pushKV("value", "03ee1fb80068f574b0d110009f110f703161cd358889a7bc48c613aa898136660a"); // Owner
+            falseInputs.push_back(falseInp);
+            falseAct.pushKV("inputs", falseInputs);
+            condNode.pushKV("false_action", falseAct);
+
+            customActions.push_back(condNode);
+        }
+        else if (index == 5) { // Dual-Signature Escrow with Mediator (2-of-3)
+            UniValue act(UniValue::VOBJ);
+            act.pushKV("role", "multi-signature");
+            UniValue inputs(UniValue::VARR);
+
+            UniValue inpM(UniValue::VOBJ); inpM.pushKV("name", "m"); inpM.pushKV("type", "number"); inpM.pushKV("value", 2); inputs.push_back(inpM);
+            UniValue inpN(UniValue::VOBJ); inpN.pushKV("name", "n"); inpN.pushKV("type", "number"); inpN.pushKV("value", 3); inputs.push_back(inpN);
+
+            UniValue keysArray(UniValue::VARR);
+            keysArray.push_back("02ee1fb80068f574b0d110009f110f703161cd358889a7bc48c613aa898136660f"); // Buyer
+            keysArray.push_back("03ee1fb80068f574b0d110009f110f703161cd358889a7bc48c613aa898136660a"); // Seller
+            keysArray.push_back("02cd98ef1234a567bcde0123ef5678cd12345678ab12345678cd12345678ef1234"); // Mediator
+            UniValue inpSigs(UniValue::VOBJ); inpSigs.pushKV("name", "Signatures"); inpSigs.pushKV("type", "array"); inpSigs.pushKV("value", keysArray); inputs.push_back(inpSigs);
+
+            act.pushKV("inputs", inputs);
+            customActions.push_back(act);
+        }
+        else if (index == 6) { // 2-Factor Authentication (2FA) Wallet
+            UniValue act(UniValue::VOBJ);
+            act.pushKV("role", "multi-signature");
+            UniValue inputs(UniValue::VARR);
+
+            UniValue inpM(UniValue::VOBJ); inpM.pushKV("name", "m"); inpM.pushKV("type", "number"); inpM.pushKV("value", 2); inputs.push_back(inpM);
+            UniValue inpN(UniValue::VOBJ); inpN.pushKV("name", "n"); inpN.pushKV("type", "number"); inpN.pushKV("value", 2); inputs.push_back(inpN);
+
+            UniValue keysArray(UniValue::VARR);
+            keysArray.push_back("02ee1fb80068f574b0d110009f110f703161cd358889a7bc48c613aa898136660f"); // Primary
+            keysArray.push_back("03ee1fb80068f574b0d110009f110f703161cd358889a7bc48c613aa898136660a"); // Backup
+            UniValue inpSigs(UniValue::VOBJ); inpSigs.pushKV("name", "Signatures"); inpSigs.pushKV("type", "array"); inpSigs.pushKV("value", keysArray); inputs.push_back(inpSigs);
+
+            act.pushKV("inputs", inputs);
+            customActions.push_back(act);
+        }
+        else if (index == 7) { // Hash Time-Locked Swap (HTLC)
+            UniValue condNode(UniValue::VOBJ);
+            condNode.pushKV("role", "if-condition");
+
+            UniValue expr(UniValue::VOBJ);
+            expr.pushKV("role", "hash160");
+            UniValue exprInputs(UniValue::VARR);
+            UniValue exprInp(UniValue::VOBJ);
+            exprInp.pushKV("name", "Hash160");
+            exprInp.pushKV("type", "string-or-number");
+            exprInp.pushKV("value", "b5a9c9f285d893ce71ab9de8f5c09d765ee982ba");
+            exprInputs.push_back(exprInp);
+            expr.pushKV("inputs", exprInputs);
+            condNode.pushKV("expression", expr);
+
+            UniValue trueAct(UniValue::VOBJ);
+            trueAct.pushKV("role", "check-signature-verification");
+            UniValue trueInputs(UniValue::VARR);
+            UniValue trueInp(UniValue::VOBJ);
+            trueInp.pushKV("name", "Pubkey");
+            trueInp.pushKV("type", "pubkey");
+            trueInp.pushKV("value", "02ee1fb80068f574b0d110009f110f703161cd358889a7bc48c613aa898136660f"); // Recipient
+            trueInputs.push_back(trueInp);
+            trueAct.pushKV("inputs", trueInputs);
+            condNode.pushKV("true_action", trueAct);
+
+            UniValue falseAct(UniValue::VOBJ);
+            falseAct.pushKV("role", "check-signature-verification");
+            UniValue falseInputs(UniValue::VARR);
+            UniValue falseInp(UniValue::VOBJ);
+            falseInp.pushKV("name", "Pubkey");
+            falseInp.pushKV("type", "pubkey");
+            falseInp.pushKV("value", "03ee1fb80068f574b0d110009f110f703161cd358889a7bc48c613aa898136660a"); // Sender
+            falseInputs.push_back(falseInp);
+            falseAct.pushKV("inputs", falseInputs);
+            condNode.pushKV("false_action", falseAct);
+
+            customActions.push_back(condNode);
+
+            UniValue timeNode(UniValue::VOBJ);
+            timeNode.pushKV("role", "lock-time");
+            UniValue timeInputs(UniValue::VARR);
+            UniValue timeInp(UniValue::VOBJ);
+            timeInp.pushKV("name", "Lock-Until");
+            timeInp.pushKV("type", "timestamp-or-block-height");
+            timeInp.pushKV("value", (int64_t)1780718400); // Expiry
+            timeInputs.push_back(timeInp);
+            timeNode.pushKV("inputs", timeInputs);
+            
+            customActions.push_back(timeNode);
+        }
+        else if (index == 8) { // Multi-Path Security Recovery
+            UniValue condNode(UniValue::VOBJ);
+            condNode.pushKV("role", "if-condition");
+
+            UniValue expr(UniValue::VOBJ);
+            expr.pushKV("role", "multi-signature");
+            UniValue exprInputs(UniValue::VARR);
+            UniValue inpM(UniValue::VOBJ); inpM.pushKV("name", "m"); inpM.pushKV("type", "number"); inpM.pushKV("value", 2); exprInputs.push_back(inpM);
+            UniValue inpN(UniValue::VOBJ); inpN.pushKV("name", "n"); inpN.pushKV("type", "number"); inpN.pushKV("value", 3); exprInputs.push_back(inpN);
+            UniValue keysArray(UniValue::VARR);
+            keysArray.push_back("03ee1fb80068f574b0d110009f110f703161cd358889a7bc48c613aa898136660a"); // Recovery Key 1
+            keysArray.push_back("02cd98ef1234a567bcde0123ef5678cd12345678ab12345678cd12345678ef1234"); // Recovery Key 2
+            keysArray.push_back("03ab89ef1234a567bcde0123ef5678cd12345678ab12345678cd12345678ef1235"); // Recovery Key 3
+            UniValue inpSigs(UniValue::VOBJ); inpSigs.pushKV("name", "Signatures"); inpSigs.pushKV("type", "array"); inpSigs.pushKV("value", keysArray); exprInputs.push_back(inpSigs);
+            expr.pushKV("inputs", exprInputs);
+            condNode.pushKV("expression", expr);
+
+            UniValue trueAct(UniValue::VOBJ);
+            trueAct.pushKV("role", "lock-time");
+            UniValue trueInputs(UniValue::VARR);
+            UniValue trueInp(UniValue::VOBJ);
+            trueInp.pushKV("name", "Lock-Until");
+            trueInp.pushKV("type", "timestamp-or-block-height");
+            trueInp.pushKV("value", (int64_t)1780718400); // Delay
+            trueInputs.push_back(trueInp);
+            trueAct.pushKV("inputs", trueInputs);
+            condNode.pushKV("true_action", trueAct);
+
+            UniValue falseAct(UniValue::VOBJ);
+            falseAct.pushKV("role", "check-signature-verification");
+            UniValue falseInputs(UniValue::VARR);
+            UniValue falseInp(UniValue::VOBJ);
+            falseInp.pushKV("name", "Pubkey");
+            falseInp.pushKV("type", "pubkey");
+            falseInp.pushKV("value", "02ee1fb80068f574b0d110009f110f703161cd358889a7bc48c613aa898136660f"); // Owner
+            falseInputs.push_back(falseInp);
+            falseAct.pushKV("inputs", falseInputs);
+            condNode.pushKV("false_action", falseAct);
+
+            customActions.push_back(condNode);
+        }
+
+        updateCustomTree();
+        buildContractFromCustom();
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════

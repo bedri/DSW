@@ -43,6 +43,7 @@ private Q_SLOTS:
     void generateContract();
     void onSaveClicked();
     void onPublishClicked();
+    void onTemplateSelected(int index);
 
     // Run tab
     void onRefreshContractsClicked();
